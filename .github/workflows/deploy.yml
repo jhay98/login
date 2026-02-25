@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Log in to Docker Hub
-        run: echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u ${{ secrets.DOCKER_HUB_USER }} --password-stdin
+        run: echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u ${{ vars.DOCKER_HUB_USER }} --password-stdin
 
   build-push-frontend:
     name: Build & Push Frontend
@@ -22,17 +22,17 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Log in to Docker Hub
-        run: echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u ${{ secrets.DOCKER_HUB_USER }} --password-stdin
+        run: echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u ${{ vars.DOCKER_HUB_USER }} --password-stdin
 
       - name: Build frontend image
         run: |
           docker build \
-            -t ${{ secrets.DOCKER_HUB_USER }}/${{ secrets.DOCKER_HUB_REPO }}:${{ secrets.DOCKER_HUB_FRONTEND_TAG }} \
+            -t ${{ vars.DOCKER_HUB_USER }}/${{ vars.DOCKER_HUB_REPO }}:${{ vars.DOCKER_HUB_FRONTEND_TAG }} \
             ./login-app
 
       - name: Push frontend image
         run: |
-          docker push ${{ secrets.DOCKER_HUB_USER }}/${{ secrets.DOCKER_HUB_REPO }}:${{ secrets.DOCKER_HUB_FRONTEND_TAG }}
+          docker push ${{ vars.DOCKER_HUB_USER }}/${{ vars.DOCKER_HUB_REPO }}:${{ vars.DOCKER_HUB_FRONTEND_TAG }}
 
   build-push-backend:
     name: Build & Push Backend
@@ -43,17 +43,17 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Log in to Docker Hub
-        run: echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u ${{ secrets.DOCKER_HUB_USER }} --password-stdin
+        run: echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u ${{ vars.DOCKER_HUB_USER }} --password-stdin
 
       - name: Build backend image
         run: |
           docker build \
-            -t ${{ secrets.DOCKER_HUB_USER }}/${{ secrets.DOCKER_HUB_REPO }}:${{ secrets.DOCKER_HUB_BACKEND_TAG }} \
+            -t ${{ vars.DOCKER_HUB_USER }}/${{ vars.DOCKER_HUB_REPO }}:${{ vars.DOCKER_HUB_BACKEND_TAG }} \
             ./LoginAPI
 
       - name: Push backend image
         run: |
-          docker push ${{ secrets.DOCKER_HUB_USER }}/${{ secrets.DOCKER_HUB_REPO }}:${{ secrets.DOCKER_HUB_BACKEND_TAG }}
+          docker push ${{ vars.DOCKER_HUB_USER }}/${{ vars.DOCKER_HUB_REPO }}:${{ vars.DOCKER_HUB_BACKEND_TAG }}
 
   deploy:
     name: Deploy to Server
@@ -63,14 +63,14 @@ jobs:
       - name: SSH and redeploy
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          port: ${{ secrets.SERVER_PORT }}
+          host: ${{ vars.SERVER_HOST }}
+          username: ${{ vars.SERVER_USER }}
+          port: ${{ vars.SERVER_PORT }}
           key: ${{ secrets.SSH_CERT }}
           script: |
             cd ~/login
             docker-compose stop -t 1
             docker-compose rm -f
-            docker rmi ${{ secrets.DOCKER_HUB_USER }}/${{ secrets.DOCKER_HUB_REPO }}:${{ secrets.DOCKER_HUB_FRONTEND_TAG }}
-            docker rmi ${{ secrets.DOCKER_HUB_USER }}/${{ secrets.DOCKER_HUB_REPO }}:${{ secrets.DOCKER_HUB_BACKEND_TAG }}
+            docker rmi ${{ vars.DOCKER_HUB_USER }}/${{ vars.DOCKER_HUB_REPO }}:${{ vars.DOCKER_HUB_FRONTEND_TAG }}
+            docker rmi ${{ vars.DOCKER_HUB_USER }}/${{ vars.DOCKER_HUB_REPO }}:${{ vars.DOCKER_HUB_BACKEND_TAG }}
             docker-compose up -d --renew-anon-volumes
