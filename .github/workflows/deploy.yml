@@ -1,0 +1,76 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  docker-login:
+    name: Docker Hub Login
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u ${{ secrets.DOCKER_HUB_USER }} --password-stdin
+
+  build-push-frontend:
+    name: Build & Push Frontend
+    runs-on: ubuntu-latest
+    needs: docker-login
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u ${{ secrets.DOCKER_HUB_USER }} --password-stdin
+
+      - name: Build frontend image
+        run: |
+          docker build \
+            -t ${{ secrets.DOCKER_HUB_USER }}/${{ secrets.DOCKER_HUB_REPO }}:${{ secrets.DOCKER_HUB_FRONTEND_TAG }} \
+            ./login-app
+
+      - name: Push frontend image
+        run: |
+          docker push ${{ secrets.DOCKER_HUB_USER }}/${{ secrets.DOCKER_HUB_REPO }}:${{ secrets.DOCKER_HUB_FRONTEND_TAG }}
+
+  build-push-backend:
+    name: Build & Push Backend
+    runs-on: ubuntu-latest
+    needs: docker-login
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u ${{ secrets.DOCKER_HUB_USER }} --password-stdin
+
+      - name: Build backend image
+        run: |
+          docker build \
+            -t ${{ secrets.DOCKER_HUB_USER }}/${{ secrets.DOCKER_HUB_REPO }}:${{ secrets.DOCKER_HUB_BACKEND_TAG }} \
+            ./LoginAPI
+
+      - name: Push backend image
+        run: |
+          docker push ${{ secrets.DOCKER_HUB_USER }}/${{ secrets.DOCKER_HUB_REPO }}:${{ secrets.DOCKER_HUB_BACKEND_TAG }}
+
+  deploy:
+    name: Deploy to Server
+    runs-on: ubuntu-latest
+    needs: [build-push-frontend, build-push-backend]
+    steps:
+      - name: SSH and redeploy
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          port: ${{ secrets.SERVER_PORT }}
+          key: ${{ secrets.SSH_CERT }}
+          script: |
+            cd ~/login
+            docker-compose stop -t 1
+            docker-compose rm -f
+            docker rmi ${{ secrets.DOCKER_HUB_USER }}/${{ secrets.DOCKER_HUB_REPO }}:${{ secrets.DOCKER_HUB_FRONTEND_TAG }}
+            docker rmi ${{ secrets.DOCKER_HUB_USER }}/${{ secrets.DOCKER_HUB_REPO }}:${{ secrets.DOCKER_HUB_BACKEND_TAG }}
+            docker-compose up -d --renew-anon-volumes
