@@ -1,5 +1,9 @@
 # GitHub Copilot Instructions
 
+## Git Operations
+
+**Never** run `git add`, `git commit`, or `git push` unless explicitly asked by the user.
+
 ## Server Connection Workflow (for server-side change requests)
 
 When a prompt asks to change something **on the server** refer to .env file for details of ec2 server.
