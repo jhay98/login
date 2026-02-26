@@ -83,8 +83,8 @@ jobs:
           key: ${{ secrets.SSH_CERT }}
           script: |
             cd ${{ vars.PROJECT_DIR }}
-            docker-compose stop -t 1
-            docker-compose rm -f
+            docker compose stop -t 1
+            docker compose rm -f
             docker rmi ${{ vars.DOCKER_HUB_USER }}/${{ vars.DOCKER_HUB_REPO }}:${{ vars.DOCKER_HUB_FRONTEND_TAG }}
             docker rmi ${{ vars.DOCKER_HUB_USER }}/${{ vars.DOCKER_HUB_REPO }}:${{ vars.DOCKER_HUB_BACKEND_TAG }}
-            docker-compose up -d --renew-anon-volumes
+            docker compose up -d --renew-anon-volumes
