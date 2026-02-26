@@ -44,4 +44,42 @@ ssh -i "$SSH_PEM_PATH" "$SERVER_USER@$SERVER_HOST" -p "$SERVER_PORT" "sudo syste
 ssh -i "$SSH_PEM_PATH" "$SERVER_USER@$SERVER_HOST" -p "$SERVER_PORT" "curl -fsS http://localhost:8080/health"
 ```
 
+## Commit Message Conventions
 
+### Format
+
+```
+<type>(<scope>): <short summary>
+
+[optional body]
+
+[optional footer]
+```
+
+- **Type**: what kind of change (see below)
+- **Scope**: what area of the codebase (optional, e.g. `auth`, `api`, `ui`)
+- **Summary**: imperative mood, lowercase, no period, ≤72 characters
+
+### Types
+
+| Type | Use for |
+|------|---------|
+| `feat` | New feature |
+| `fix` | Bug fix |
+| `docs` | Documentation changes |
+| `style` | Formatting, no logic change |
+| `refactor` | Code restructure, no feature/fix |
+| `test` | Adding or updating tests |
+| `chore` | Tooling, dependencies, config |
+| `ci` | CI/CD pipeline changes |
+| `perf` | Performance improvements |
+
+### Examples
+
+```
+feat(auth): add OAuth2 login
+fix(api): handle null response from payment gateway
+docs: update README with setup instructions
+chore: add .gitignore
+ci: add GitHub Actions workflow
+```

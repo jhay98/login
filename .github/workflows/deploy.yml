@@ -60,6 +60,19 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-push-frontend, build-push-backend]
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Copy config files to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ vars.SERVER_HOST }}
+          username: ${{ vars.SERVER_USER }}
+          port: ${{ vars.SERVER_PORT }}
+          key: ${{ secrets.SSH_CERT }}
+          source: "docker-compose.yml,nginx/nginx.conf"
+          target: ${{ vars.PROJECT_DIR }}
+
       - name: SSH and redeploy
         uses: appleboy/ssh-action@v1.2.0
         with:
@@ -68,7 +81,7 @@ jobs:
           port: ${{ vars.SERVER_PORT }}
           key: ${{ secrets.SSH_CERT }}
           script: |
-            cd ~/login
+            cd ${{ vars.PROJECT_DIR }}
             docker-compose stop -t 1
             docker-compose rm -f
             docker rmi ${{ vars.DOCKER_HUB_USER }}/${{ vars.DOCKER_HUB_REPO }}:${{ vars.DOCKER_HUB_FRONTEND_TAG }}
