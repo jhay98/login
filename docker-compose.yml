@@ -11,13 +11,11 @@ services:
     restart: unless-stopped
 
   frontend:
-    build:
-      context: ./login-app
+    image: ${DOCKER_HUB_USER}/${DOCKER_HUB_REPO}:${DOCKER_HUB_FRONTEND_TAG}
     restart: unless-stopped
 
   backend:
-    build:
-      context: ./LoginAPI
+    image: ${DOCKER_HUB_USER}/${DOCKER_HUB_REPO}:${DOCKER_HUB_BACKEND_TAG}
     environment:
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       - JwtSettings__SecretKey=${JwtSettings__SecretKey}
@@ -29,9 +27,7 @@ services:
     restart: unless-stopped
 
   migrator:
-    build:
-      context: ./LoginAPI
-      target: migrator
+    image: ${DOCKER_HUB_USER}/${DOCKER_HUB_REPO}:${DOCKER_HUB_MIGRATOR_TAG}
     environment:
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
     depends_on:
