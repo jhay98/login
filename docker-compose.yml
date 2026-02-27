@@ -22,18 +22,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      migrator:
-        condition: service_completed_successfully
     restart: unless-stopped
-
-  migrator:
-    image: ${DOCKER_HUB_USER}/${DOCKER_HUB_REPO}:${DOCKER_HUB_MIGRATOR_TAG}
-    environment:
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: "no"
 
   postgres:
     image: postgres:17-alpine

@@ -64,6 +64,14 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
+if (args.Contains("--migrate-only"))
+{
+    using var scope = app.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    dbContext.Database.Migrate();
+    return;
+}
+
 // Configure the HTTP request pipeline.
 
 // Global Exception Middleware (should be first)
