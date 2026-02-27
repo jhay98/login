@@ -1,0 +1,22 @@
+# Build & publish output
+bin/
+obj/
+publish/
+
+# EF Core migrations bundle / script output
+*.bundle
+efbundle
+
+# Local dotnet user secrets
+secrets.json
+
+# Rider / VS local files
+*.user
+.idea/
+.vs/
+
+# Test results
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
