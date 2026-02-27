@@ -1,12 +1,17 @@
 # GitHub Copilot Instructions
 
+## Sensitive Data
+
+**All** sensitive values (passwords, secrets, API keys, connection strings, tokens) must **only** ever be stored in the `.env` file in the workspace root.
+**Never** hardcode sensitive values in source files such as `appsettings.json`, source code, or any other file that is committed to version control.
+
 ## Git Operations
 
 **Never** run `git add`, `git commit`, or `git push` unless explicitly asked by the user.
 
 ## Server Connection Workflow (for server-side change requests)
 
-When a prompt asks to change something **on the server** refer to .env file for details of ec2 server.
+When a prompt asks to change something **on the server** refer to the `.env` file in the workspace root for details of the ec2 server.
 
 When a prompt explicitly asks to **connect to the server**, run an SSH command using the credentials from `.env` (for example: `SSH_PEM_PATH`, `SERVER_USER`, `SERVER_HOST`, `SERVER_PORT`) as the first step.
 

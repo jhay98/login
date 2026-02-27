@@ -16,12 +16,19 @@ COPY ["LoginAPI.csproj", "."]
 RUN dotnet restore "./LoginAPI.csproj"
 COPY . .
 WORKDIR "/src/."
-RUN dotnet build "./LoginAPI.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet build "./LoginAPI.csproj" -c $BUILD_CONFIGURATION
 
 # This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
 RUN dotnet publish "./LoginAPI.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+
+# This stage is used to run EF Core database migrations
+FROM build AS migrator
+RUN dotnet tool install --global dotnet-ef
+ENV PATH="${PATH}:/root/.dotnet/tools"
+WORKDIR "/src/."
+ENTRYPOINT ["sh", "-c", "dotnet ef database update --project LoginAPI.csproj --no-build --configuration Release"]
 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
 FROM base AS final

@@ -1,6 +1,92 @@
 @LoginAPI_HostAddress = http://localhost:5177
 
-GET {{LoginAPI_HostAddress}}/weatherforecast/
-Accept: application/json
+### Register a new user
+POST {{LoginAPI_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "john.doe@example.com",
+  "password": "Test@1234",
+  "firstName": "John",
+  "lastName": "Doe"
+}
+
+###
+
+### Register another user
+POST {{LoginAPI_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "jane.smith@example.com",
+  "password": "SecurePass@123",
+  "firstName": "Jane",
+  "lastName": "Smith"
+}
+
+###
+
+### Login with registered user
+POST {{LoginAPI_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "john.doe@example.com",
+  "password": "Test@1234"
+}
+
+###
+
+### Login with wrong password (should fail)
+POST {{LoginAPI_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "john.doe@example.com",
+  "password": "WrongPassword123"
+}
+
+###
+
+### Get current user details (requires valid JWT token)
+### Replace YOUR_JWT_TOKEN with the token from login response
+GET {{LoginAPI_HostAddress}}/api/auth/me
+Authorization: Bearer YOUR_JWT_TOKEN
+
+###
+
+### Test validation - Missing required fields
+POST {{LoginAPI_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "test@example.com"
+}
+
+###
+
+### Test validation - Invalid email format
+POST {{LoginAPI_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "invalid-email",
+  "password": "Test@1234",
+  "firstName": "Test",
+  "lastName": "User"
+}
+
+###
+
+### Test validation - Weak password
+POST {{LoginAPI_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "weak",
+  "firstName": "Test",
+  "lastName": "User"
+}
 
 ###
