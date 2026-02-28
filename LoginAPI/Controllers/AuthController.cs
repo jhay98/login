@@ -87,4 +87,18 @@ public class AuthController : ControllerBase
             return NotFound(new ErrorResponseDto { Message = ex.Message });
         }
     }
+
+    /// <summary>
+    /// Get all users (admin role required)
+    /// </summary>
+    [Authorize(Roles = "Admin")]
+    [HttpGet("users")]
+    [ProducesResponseType(typeof(List<UserDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<List<UserDto>>> GetAllUsers()
+    {
+        var users = await _authService.GetAllUsersAsync();
+        return Ok(users);
+    }
 }

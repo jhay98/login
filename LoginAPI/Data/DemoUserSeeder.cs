@@ -5,6 +5,8 @@ namespace LoginAPI.Data;
 
 public static class DemoUserSeeder
 {
+    private const string DefaultRoleName = "User";
+
     public static async Task SeedAsync(IServiceProvider services, CancellationToken cancellationToken = default)
     {
         using var scope = services.CreateScope();
@@ -37,6 +39,21 @@ public static class DemoUserSeeder
 
         var now = DateTime.UtcNow;
 
+        var defaultRole = await dbContext.Roles
+            .FirstOrDefaultAsync(r => r.Name == DefaultRoleName, cancellationToken);
+
+        if (defaultRole == null)
+        {
+            defaultRole = new Role
+            {
+                Name = DefaultRoleName,
+                Description = "Default role for registered users",
+                CreatedAt = now
+            };
+
+            dbContext.Roles.Add(defaultRole);
+        }
+
         var user = new User
         {
             Email = email,
@@ -44,7 +61,15 @@ public static class DemoUserSeeder
             FirstName = firstName.Trim(),
             LastName = lastName.Trim(),
             CreatedAt = now,
-            UpdatedAt = now
+            UpdatedAt = now,
+            UserRoles = new List<UserRole>
+            {
+                new()
+                {
+                    Role = defaultRole,
+                    AssignedAt = now
+                }
+            }
         };
 
         dbContext.Users.Add(user);
