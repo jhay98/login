@@ -19,6 +19,10 @@ services:
     environment:
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       - JwtSettings__SecretKey=${JwtSettings__SecretKey}
+      - DEMO_USER_EMAIL=${DEMO_USER_EMAIL}
+      - DEMO_USER_PASSWORD=${DEMO_USER_PASSWORD}
+      - DEMO_USER_FIRST_NAME=${DEMO_USER_FIRST_NAME}
+      - DEMO_USER_LAST_NAME=${DEMO_USER_LAST_NAME}
     depends_on:
       postgres:
         condition: service_healthy

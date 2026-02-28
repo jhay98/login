@@ -76,6 +76,8 @@ if (args.Contains("--migrate-only"))
     return;
 }
 
+await DemoUserSeeder.SeedAsync(app.Services);
+
 // Configure the HTTP request pipeline.
 
 // Global Exception Middleware (should be first)
