@@ -7,9 +7,57 @@ on:
   workflow_dispatch:
 
 jobs:
+  frontend-validate:
+    name: Frontend Validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: login-app/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./login-app
+        run: npm ci
+
+      - name: Run lint
+        working-directory: ./login-app
+        run: npm run lint
+
+      - name: Run frontend build
+        working-directory: ./login-app
+        run: npm run build
+
+  backend-validate:
+    name: Backend Validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore ./login.sln
+
+      - name: Build
+        run: dotnet build ./login.sln --configuration Release --no-restore
+
+      - name: Run backend tests
+        run: dotnet test ./login.sln --configuration Release --no-build
+
   build-push-frontend:
     name: Build & Push Frontend
     runs-on: ubuntu-latest
+    needs: [frontend-validate, backend-validate]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -30,6 +78,7 @@ jobs:
   build-push-backend:
     name: Build & Push Backend
     runs-on: ubuntu-latest
+    needs: [frontend-validate, backend-validate]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
