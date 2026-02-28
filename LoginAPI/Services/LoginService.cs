@@ -1,8 +1,8 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using AutoMapper;
 using LoginAPI.Data.Entities;
-using LoginAPI.Data.Repositories;
 using LoginAPI.Interfaces;
 using LoginAPI.Models;
 using LoginAPI.Models.DTOs;
@@ -16,15 +16,18 @@ public class AuthService : IAuthService
     private readonly IUserRepository _userRepository;
     private readonly JwtSettings _jwtSettings;
     private readonly ILogger<AuthService> _logger;
+    private readonly IMapper _mapper;
     
     public AuthService(
         IUserRepository userRepository, 
         IOptions<JwtSettings> jwtSettings,
-        ILogger<AuthService> logger)
+        ILogger<AuthService> logger,
+        IMapper mapper)
     {
         _userRepository = userRepository;
         _jwtSettings = jwtSettings.Value;
         _logger = logger;
+        _mapper = mapper;
     }
     
     public async Task<UserDto> RegisterAsync(RegisterRequestDto request)
@@ -53,7 +56,7 @@ public class AuthService : IAuthService
         
         _logger.LogInformation("User registered successfully: {Email}", createdUser.Email);
         
-        return MapToUserDto(createdUser);
+        return _mapper.Map<UserDto>(createdUser);
     }
     
     public async Task<LoginResponseDto> LoginAsync(LoginRequestDto request)
@@ -82,7 +85,7 @@ public class AuthService : IAuthService
         return new LoginResponseDto
         {
             Token = token,
-            User = MapToUserDto(user)
+            User = _mapper.Map<UserDto>(user)
         };
     }
     
@@ -96,7 +99,7 @@ public class AuthService : IAuthService
             throw new KeyNotFoundException("User not found");
         }
         
-        return MapToUserDto(user);
+        return _mapper.Map<UserDto>(user);
     }
     
     private string GenerateJwtToken(User user)
@@ -125,15 +128,4 @@ public class AuthService : IAuthService
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
     
-    private UserDto MapToUserDto(User user)
-    {
-        return new UserDto
-        {
-            Id = user.Id,
-            Email = user.Email,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            CreatedAt = user.CreatedAt
-        };
-    }
 }

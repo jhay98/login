@@ -1,4 +1,5 @@
 using System.Text;
+using AutoMapper;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using LoginAPI.Data;
@@ -54,6 +55,9 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 // Register Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 
+// Register AutoMapper
+builder.Services.AddAutoMapper(typeof(Program));
+
 // Register FluentValidation
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
@@ -77,11 +81,11 @@ if (args.Contains("--migrate-only"))
 // Global Exception Middleware (should be first)
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
-//if (app.Environment.IsDevelopment())
-//{
+if (app.Environment.IsDevelopment())
+{
     app.MapOpenApi();
     app.MapScalarApiReference();
-//}
+}
 
 //app.UseHttpsRedirection();
 
