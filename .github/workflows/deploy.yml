@@ -79,7 +79,8 @@ jobs:
   build-push-backend:
     name: Build & Push Backend
     runs-on: ubuntu-latest
-    needs: [frontend-validate, backend-validate]
+    # needs: [frontend-validate, backend-validate]
+    needs: [backend-validate]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
