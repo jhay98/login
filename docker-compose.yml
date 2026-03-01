@@ -45,6 +45,8 @@ services:
 
   activityapi:
     image: ${DOCKER_HUB_USER}/${DOCKER_HUB_REPO}:${DOCKER_HUB_ACTIVITY_TAG}
+    ports:
+      - "127.0.0.1:5434:5432"
     environment:
       - ConnectionStrings__DefaultConnection=Host=activity-postgres;Port=5432;Database=${ACTIVITY_POSTGRES_DB};Username=${ACTIVITY_POSTGRES_USER};Password=${ACTIVITY_POSTGRES_PASSWORD}
       - InternalApi__Key=${INTERNAL_API_KEY}
@@ -56,7 +58,7 @@ services:
   login-postgres:
     image: postgres:17-alpine
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:5433:5432"
     environment:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
