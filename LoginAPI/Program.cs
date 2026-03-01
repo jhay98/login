@@ -76,6 +76,13 @@ if (args.Contains("--migrate-only"))
     return;
 }
 
+if (args.Contains("--migrate"))
+{
+    using var scope = app.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    dbContext.Database.Migrate();
+}
+
 await DemoUserSeeder.SeedAsync(app.Services);
 
 // Configure the HTTP request pipeline.
