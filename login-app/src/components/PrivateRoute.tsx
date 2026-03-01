@@ -14,7 +14,7 @@ interface PrivateRouteProps {
  * Protects child routes and redirects unauthenticated users to login.
  */
 export function PrivateRoute({ children }: PrivateRouteProps) {
-  const { isAuthenticated, isInitializing } = useAuth()
+  const { isAuthenticated, isInitializing, sessionNotice } = useAuth()
   const location = useLocation()
 
   if (isInitializing) {
@@ -22,6 +22,10 @@ export function PrivateRoute({ children }: PrivateRouteProps) {
   }
 
   if (!isAuthenticated) {
+    if (sessionNotice === 'expired') {
+      return <>{children}</>
+    }
+
     return <Navigate to="/login" replace state={{ from: location }} />
   }
 

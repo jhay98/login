@@ -78,9 +78,11 @@ public class AuthEndpointsIntegrationTests : IClassFixture<CustomWebApplicationF
 
         Assert.Equal(HttpStatusCode.OK, meResponse.StatusCode);
 
-        var mePayload = await meResponse.Content.ReadFromJsonAsync<UserDto>();
+        var mePayload = await meResponse.Content.ReadFromJsonAsync<RefreshTokenResponseDto<UserDto>>();
         Assert.NotNull(mePayload);
-        Assert.Equal(request.Email.ToLowerInvariant(), mePayload!.Email);
+        Assert.False(string.IsNullOrWhiteSpace(mePayload!.Token));
+        Assert.NotNull(mePayload.Data);
+        Assert.Equal(request.Email.ToLowerInvariant(), mePayload.Data!.Email);
     }
 
     [Fact]

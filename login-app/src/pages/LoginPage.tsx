@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ApiError } from '../lib/api'
@@ -36,7 +36,7 @@ type LoginLocationState = {
 export function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { login, sessionNotice, clearSessionNotice, isAuthenticated } = useAuth()
+  const { login, isAuthenticated } = useAuth()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -47,21 +47,6 @@ export function LoginPage() {
 
   const state = (location.state ?? {}) as LoginLocationState
   const destination = state.from?.pathname || '/profile'
-
-  const sessionMessage = useMemo(() => {
-    if (sessionNotice === 'expired') {
-      return 'Your session expired. Please sign in again.'
-    }
-    return null
-  }, [sessionNotice])
-
-  useEffect(() => {
-    if (!sessionNotice) {
-      return
-    }
-
-    clearSessionNotice()
-  }, [clearSessionNotice, sessionNotice])
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -109,7 +94,6 @@ export function LoginPage() {
         <p className="muted">Sign in to continue.</p>
 
         {state.registered && <p className="success">Registration successful. Please log in.</p>}
-        {sessionMessage && <p className="error">{sessionMessage}</p>}
         {formError && <p className="error">{formError}</p>}
 
         <form onSubmit={onSubmit} noValidate>

@@ -89,16 +89,9 @@ public class AuthService : IAuthService
             throw new UnauthorizedAccessException("Invalid email or password");
         }
         
-        // Generate JWT token
-        var token = GenerateJwtToken(user);
-        
         _logger.LogInformation("User logged in successfully: {Email}", user.Email);
-        
-        return new LoginResponseDto
-        {
-            Token = token,
-            User = _mapper.Map<UserDto>(user)
-        };
+
+        return CreateSessionResponse(user);
     }
     
     /// <inheritdoc />
@@ -121,6 +114,33 @@ public class AuthService : IAuthService
         var users = await _userRepository.GetAllAsync();
         return _mapper.Map<List<UserDto>>(users);
     }
+
+    /// <inheritdoc />
+    public string GenerateTokenFromPrincipal(ClaimsPrincipal principal)
+    {
+        var userId = principal.FindFirst("userId")?.Value
+            ?? principal.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+
+        var email = principal.FindFirst(JwtRegisteredClaimNames.Email)?.Value
+            ?? principal.FindFirst(ClaimTypes.Email)?.Value;
+
+        var firstName = principal.FindFirst(JwtRegisteredClaimNames.GivenName)?.Value
+            ?? principal.FindFirst(ClaimTypes.GivenName)?.Value
+            ?? string.Empty;
+
+        var lastName = principal.FindFirst(JwtRegisteredClaimNames.FamilyName)?.Value
+            ?? principal.FindFirst(ClaimTypes.Surname)?.Value
+            ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(email))
+        {
+            throw new InvalidOperationException("Required identity claims are missing");
+        }
+
+        var roles = principal.FindAll(ClaimTypes.Role).Select(c => c.Value);
+        return GenerateJwtToken(userId, email, firstName, lastName, roles);
+    }
     
     /// <summary>
     /// Builds a signed JWT access token for the specified user.
@@ -129,24 +149,39 @@ public class AuthService : IAuthService
     /// <returns>A signed JWT token string.</returns>
     private string GenerateJwtToken(User user)
     {
+        var roles = user.UserRoles.Select(ur => ur.Role.Name).Distinct(StringComparer.OrdinalIgnoreCase);
+        return GenerateJwtToken(user.Id.ToString(), user.Email, user.FirstName, user.LastName, roles);
+    }
+
+    /// <summary>
+    /// Builds a signed JWT access token from explicit identity values.
+    /// </summary>
+    /// <param name="userId">User identifier claim value.</param>
+    /// <param name="email">Email claim value.</param>
+    /// <param name="firstName">First-name claim value.</param>
+    /// <param name="lastName">Last-name claim value.</param>
+    /// <param name="roles">Role claims to include.</param>
+    /// <returns>A signed JWT token string.</returns>
+    private string GenerateJwtToken(string userId, string email, string firstName, string lastName, IEnumerable<string> roles)
+    {
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
         var claims = new List<Claim>
         {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new Claim(JwtRegisteredClaimNames.Email, user.Email),
-            new Claim(JwtRegisteredClaimNames.GivenName, user.FirstName),
-            new Claim(JwtRegisteredClaimNames.FamilyName, user.LastName),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim("userId", user.Id.ToString())
+            new(JwtRegisteredClaimNames.Sub, userId),
+            new(JwtRegisteredClaimNames.Email, email),
+            new(JwtRegisteredClaimNames.GivenName, firstName),
+            new(JwtRegisteredClaimNames.FamilyName, lastName),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new("userId", userId)
         };
 
-        foreach (var roleName in user.UserRoles.Select(ur => ur.Role.Name).Distinct(StringComparer.OrdinalIgnoreCase))
+        foreach (var roleName in roles.Where(r => !string.IsNullOrWhiteSpace(r)).Distinct(StringComparer.OrdinalIgnoreCase))
         {
             claims.Add(new Claim(ClaimTypes.Role, roleName));
         }
-        
+
         var token = new JwtSecurityToken(
             issuer: _jwtSettings.Issuer,
             audience: _jwtSettings.Audience,
@@ -154,8 +189,24 @@ public class AuthService : IAuthService
             expires: DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationMinutes),
             signingCredentials: credentials
         );
-        
+
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    /// <summary>
+    /// Creates a session payload for a user with a freshly issued JWT token.
+    /// </summary>
+    /// <param name="user">The authenticated user.</param>
+    /// <returns>Session payload containing token and user profile.</returns>
+    private LoginResponseDto CreateSessionResponse(User user)
+    {
+        var token = GenerateJwtToken(user);
+
+        return new LoginResponseDto
+        {
+            Token = token,
+            User = _mapper.Map<UserDto>(user)
+        };
     }
     
 }

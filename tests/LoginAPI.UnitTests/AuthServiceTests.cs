@@ -1,4 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using AutoMapper;
 using LoginAPI.Data.Entities;
 using LoginAPI.Interfaces;
@@ -159,6 +160,45 @@ public class AuthServiceTests
         Assert.Equal(2, result.Count);
         Assert.Equal("one@example.com", result[0].Email);
         Assert.Equal("two@example.com", result[1].Email);
+    }
+
+    [Fact]
+    public void GenerateTokenFromPrincipal_WithValidClaims_ReturnsTokenContainingIdentityClaims()
+    {
+        var repository = new FakeUserRepository();
+        var service = CreateService(repository);
+
+        var principal = new ClaimsPrincipal(new ClaimsIdentity(
+        [
+            new Claim("userId", "42"),
+            new Claim(ClaimTypes.NameIdentifier, "42"),
+            new Claim(ClaimTypes.Email, "session@example.com"),
+            new Claim(ClaimTypes.GivenName, "Session"),
+            new Claim(ClaimTypes.Surname, "User"),
+            new Claim(ClaimTypes.Role, "Admin")
+        ], "jwt"));
+
+        var token = service.GenerateTokenFromPrincipal(principal);
+
+        Assert.False(string.IsNullOrWhiteSpace(token));
+
+        var parsedToken = new JwtSecurityTokenHandler().ReadJwtToken(token);
+        Assert.Contains(parsedToken.Claims, c => c.Type == "userId" && c.Value == "42");
+        Assert.Contains(parsedToken.Claims, c => c.Type == JwtRegisteredClaimNames.Email && c.Value == "session@example.com");
+        Assert.Contains(parsedToken.Claims, c => c.Type == ClaimTypes.Role && c.Value == "Admin");
+    }
+
+    [Fact]
+    public void GenerateTokenFromPrincipal_WhenRequiredClaimsMissing_ThrowsInvalidOperationException()
+    {
+        var service = CreateService(new FakeUserRepository());
+
+        var principal = new ClaimsPrincipal(new ClaimsIdentity(
+        [
+            new Claim(ClaimTypes.Name, "NoEmail")
+        ], "jwt"));
+
+        Assert.Throws<InvalidOperationException>(() => service.GenerateTokenFromPrincipal(principal));
     }
 
     private static AuthService CreateService(FakeUserRepository repository)

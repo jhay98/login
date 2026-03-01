@@ -1,4 +1,5 @@
 ﻿using System.Security.Claims;
+using LoginAPI.Filters;
 using LoginAPI.Interfaces;
 using LoginAPI.Models.DTOs;
 using Microsoft.AspNetCore.Authorization;
@@ -74,10 +75,11 @@ public class AuthController : ControllerBase
     /// <summary>
     /// Gets the currently authenticated user details.
     /// </summary>
-    /// <returns>The current user profile.</returns>
+    /// <returns>The current user profile with refreshed token envelope.</returns>
     [Authorize]
+    [RefreshToken]
     [HttpGet("me")]
-    [ProducesResponseType(typeof(UserDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RefreshTokenResponseDto<UserDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<UserDto>> GetMe()
@@ -106,8 +108,9 @@ public class AuthController : ControllerBase
     /// </summary>
     /// <returns>A list of users.</returns>
     [Authorize(Roles = "Admin")]
+    [RefreshToken]
     [HttpGet("users")]
-    [ProducesResponseType(typeof(List<UserDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RefreshTokenResponseDto<List<UserDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<List<UserDto>>> GetAllUsers()

@@ -57,10 +57,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     try {
-      const me = await authApi.me(activeToken)
-      setUser(me)
-      setToken(activeToken)
-      persistToken(activeToken)
+      const refreshed = await authApi.me(activeToken)
+
+      if (isTokenExpired(refreshed.token)) {
+        logout('expired')
+        return
+      }
+
+      setUser(refreshed.data)
+      setToken(refreshed.token)
+      setSessionNotice(null)
+      persistToken(refreshed.token)
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         logout('expired')
@@ -76,12 +83,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
    */
   const refreshProfile = useCallback(async () => {
     if (!token) {
-      logout(null)
       return
     }
 
     await refreshProfileForToken(token)
-  }, [logout, refreshProfileForToken, token])
+  }, [refreshProfileForToken, token])
 
   /**
    * Signs the user in and persists the received token.
@@ -103,7 +109,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   /**
    * Clears one-time session notice state.
    */
-  const clearSessionNotice = useCallback(() => {
+  const acknowledgeSessionNotice = useCallback(() => {
     setSessionNotice(null)
   }, [])
 
@@ -142,13 +148,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       isAuthenticated: Boolean(token && user),
       isInitializing,
       sessionNotice,
-      clearSessionNotice,
+      acknowledgeSessionNotice,
       login,
       register,
       logout,
       refreshProfile,
     }),
-    [clearSessionNotice, isInitializing, login, logout, refreshProfile, register, sessionNotice, token, user],
+    [acknowledgeSessionNotice, isInitializing, login, logout, refreshProfile, register, sessionNotice, token, user],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

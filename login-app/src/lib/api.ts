@@ -2,6 +2,7 @@ import type {
   ApiErrorShape,
   LoginRequest,
   LoginResponse,
+  RefreshTokenResponse,
   RegisterRequest,
   User,
 } from '../types/auth'
@@ -88,7 +89,7 @@ export const authApi = {
 
   /** Retrieves the current user profile for a bearer token. */
   me(token: string) {
-    return request<User>('/auth/me', {
+    return request<RefreshTokenResponse<User>>('/auth/me', {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${token}`,

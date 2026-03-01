@@ -1,6 +1,7 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import './App.css'
 import { PrivateRoute } from './components/PrivateRoute'
+import { SessionTimeoutDialog } from './components/SessionTimeoutDialog'
 import { useAuth } from './context/useAuth'
 import { LoginPage } from './pages/LoginPage'
 import { ProfilePage } from './pages/ProfilePage'
@@ -23,21 +24,35 @@ function HomeRedirect() {
  * Root application router.
  */
 function App() {
+  const navigate = useNavigate()
+  const { sessionNotice, acknowledgeSessionNotice } = useAuth()
+
   return (
-    <Routes>
-      <Route path="/" element={<HomeRedirect />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route
-        path="/profile"
-        element={
-          <PrivateRoute>
-            <ProfilePage />
-          </PrivateRoute>
-        }
-      />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/" element={<HomeRedirect />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/profile"
+          element={
+            <PrivateRoute>
+              <ProfilePage />
+            </PrivateRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+
+      {sessionNotice === 'expired' && (
+        <SessionTimeoutDialog
+          onOk={() => {
+            acknowledgeSessionNotice()
+            navigate('/login', { replace: true })
+          }}
+        />
+      )}
+    </>
   )
 }
 

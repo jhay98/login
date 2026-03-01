@@ -4,6 +4,7 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using LoginAPI.Data;
 using LoginAPI.Data.Repositories;
+using LoginAPI.Filters;
 using LoginAPI.Interfaces;
 using LoginAPI.Middleware;
 using LoginAPI.Models;
@@ -54,6 +55,7 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 // Register Services
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<RefreshTokenResponseFilter>();
 
 // Register AutoMapper
 builder.Services.AddAutoMapper(typeof(Program));
@@ -62,7 +64,10 @@ builder.Services.AddAutoMapper(typeof(Program));
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    options.Filters.AddService<RefreshTokenResponseFilter>();
+});
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 

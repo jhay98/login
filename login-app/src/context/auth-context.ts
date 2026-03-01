@@ -20,8 +20,8 @@ export interface AuthContextValue {
   isInitializing: boolean
   /** Optional one-time session message. */
   sessionNotice: SessionNotice
-  /** Clears the current session notice message. */
-  clearSessionNotice: () => void
+  /** Acknowledges and clears the current session notice message. */
+  acknowledgeSessionNotice: () => void
   /** Authenticates and stores a user session. */
   login: (payload: LoginRequest) => Promise<void>
   /** Registers a new account. */

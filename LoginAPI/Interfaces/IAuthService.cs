@@ -1,4 +1,5 @@
 ﻿using LoginAPI.Models.DTOs;
+using System.Security.Claims;
 
 namespace LoginAPI.Interfaces;
 
@@ -30,6 +31,14 @@ public interface IAuthService
     /// <returns>The matching user details.</returns>
     /// <exception cref="KeyNotFoundException">Thrown when the user does not exist.</exception>
     Task<UserDto> GetUserByIdAsync(int userId);
+
+    /// <summary>
+    /// Builds a new JWT token based on claims from an authenticated principal.
+    /// </summary>
+    /// <param name="principal">Authenticated user principal.</param>
+    /// <returns>A signed JWT token string.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when required claims are missing.</exception>
+    string GenerateTokenFromPrincipal(ClaimsPrincipal principal);
 
     /// <summary>
     /// Retrieves all users in the system.

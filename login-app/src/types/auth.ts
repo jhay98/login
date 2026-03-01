@@ -27,6 +27,12 @@ export interface LoginResponse {
   user: User
 }
 
+/** Generic response payload with refreshed token and endpoint data. */
+export interface RefreshTokenResponse<T> {
+  token: string
+  data: T
+}
+
 /** Error body shape used by backend API responses. */
 export interface ApiErrorShape {
   message?: string

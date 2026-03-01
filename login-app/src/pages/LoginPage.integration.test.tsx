@@ -22,8 +22,6 @@ vi.mock('react-router-dom', async () => {
 
 type AuthState = {
   login: (payload: { email: string; password: string }) => Promise<void>
-  sessionNotice: 'expired' | null
-  clearSessionNotice: () => void
   isAuthenticated: boolean
 }
 
@@ -48,8 +46,6 @@ describe('LoginPage integration', () => {
 
     const authState: AuthState = {
       login,
-      sessionNotice: null,
-      clearSessionNotice: vi.fn(),
       isAuthenticated: false,
     }
 
@@ -68,8 +64,6 @@ describe('LoginPage integration', () => {
 
     mockUseAuth.mockReturnValue({
       login,
-      sessionNotice: null,
-      clearSessionNotice: vi.fn(),
       isAuthenticated: false,
     } as AuthState)
 
@@ -91,21 +85,5 @@ describe('LoginPage integration', () => {
     })
 
     expect(mockNavigate).toHaveBeenCalledWith('/profile', { replace: true })
-  })
-
-  it('shows expired-session message and clears one-time notice', async () => {
-    const clearSessionNotice = vi.fn()
-
-    mockUseAuth.mockReturnValue({
-      login: vi.fn().mockResolvedValue(undefined),
-      sessionNotice: 'expired',
-      clearSessionNotice,
-      isAuthenticated: false,
-    } as AuthState)
-
-    renderLogin()
-
-    expect(await screen.findByText('Your session expired. Please sign in again.')).toBeInTheDocument()
-    expect(clearSessionNotice).toHaveBeenCalledTimes(1)
   })
 })
