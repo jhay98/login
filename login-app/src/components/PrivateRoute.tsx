@@ -2,7 +2,18 @@ import type { ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
 
-export function PrivateRoute({ children }: { children: ReactNode }) {
+/**
+ * Props for {@link PrivateRoute}.
+ */
+interface PrivateRouteProps {
+  /** Content rendered when authentication succeeds. */
+  children: ReactNode
+}
+
+/**
+ * Protects child routes and redirects unauthenticated users to login.
+ */
+export function PrivateRoute({ children }: PrivateRouteProps) {
   const { isAuthenticated, isInitializing } = useAuth()
   const location = useLocation()
 

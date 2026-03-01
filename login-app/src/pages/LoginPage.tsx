@@ -4,6 +4,9 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ApiError } from '../lib/api'
 import { useAuth } from '../context/useAuth'
 
+/**
+ * Validates an email input value.
+ */
 function validateEmail(email: string): string | null {
   if (!email.trim()) {
     return 'Email is required.'
@@ -17,6 +20,9 @@ function validateEmail(email: string): string | null {
   return null
 }
 
+/**
+ * Router location state used by the login page.
+ */
 type LoginLocationState = {
   from?: {
     pathname?: string
@@ -24,6 +30,9 @@ type LoginLocationState = {
   registered?: boolean
 }
 
+/**
+ * Authentication page for signing users in.
+ */
 export function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -60,6 +69,9 @@ export function LoginPage() {
     }
   }, [isAuthenticated, navigate])
 
+  /**
+   * Handles login form submission.
+   */
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setFormError(null)

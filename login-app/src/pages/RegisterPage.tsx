@@ -4,6 +4,9 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ApiError } from '../lib/api'
 import { useAuth } from '../context/useAuth'
 
+/**
+ * Local register form state.
+ */
 interface FormState {
   firstName: string
   lastName: string
@@ -12,6 +15,9 @@ interface FormState {
   confirmPassword: string
 }
 
+/**
+ * Validation errors keyed by field name.
+ */
 interface FormErrors {
   firstName?: string
   lastName?: string
@@ -20,6 +26,9 @@ interface FormErrors {
   confirmPassword?: string
 }
 
+/**
+ * Performs client-side registration form validation.
+ */
 function validate(form: FormState): FormErrors {
   const errors: FormErrors = {}
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -52,6 +61,9 @@ function validate(form: FormState): FormErrors {
   return errors
 }
 
+/**
+ * Account registration page.
+ */
 export function RegisterPage() {
   const navigate = useNavigate()
   const { register } = useAuth()
@@ -67,6 +79,9 @@ export function RegisterPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  /**
+   * Handles registration form submission.
+   */
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setFormError(null)

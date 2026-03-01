@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { ApiError } from '../lib/api'
 import { useAuth } from '../context/useAuth'
 
+/**
+ * Protected profile page for viewing and refreshing current user data.
+ */
 export function ProfilePage() {
   const navigate = useNavigate()
   const { user, logout, refreshProfile } = useAuth()

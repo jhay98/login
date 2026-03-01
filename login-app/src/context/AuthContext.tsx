@@ -5,8 +5,12 @@ import { isTokenExpired } from '../lib/token'
 import type { LoginRequest, RegisterRequest, User } from '../types/auth'
 import { AuthContext, type AuthContextValue, type SessionNotice } from './auth-context'
 
+/** Storage key used for persisting the JWT between refreshes. */
 const SESSION_TOKEN_KEY = 'auth_token'
 
+/**
+ * Persists or removes the session token in browser session storage.
+ */
 function persistToken(token: string | null) {
   if (!token) {
     sessionStorage.removeItem(SESSION_TOKEN_KEY)
@@ -16,12 +20,26 @@ function persistToken(token: string | null) {
   sessionStorage.setItem(SESSION_TOKEN_KEY, token)
 }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+/**
+ * Props for {@link AuthProvider}.
+ */
+interface AuthProviderProps {
+  /** Child elements that consume authentication state. */
+  children: ReactNode
+}
+
+/**
+ * Provides authentication state and actions to descendants.
+ */
+export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [isInitializing, setIsInitializing] = useState(true)
   const [sessionNotice, setSessionNotice] = useState<SessionNotice>(null)
 
+  /**
+   * Clears session state and optionally records a session notice reason.
+   */
   const logout = useCallback((reason: SessionNotice = null) => {
     setUser(null)
     setToken(null)
@@ -29,6 +47,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     persistToken(null)
   }, [])
 
+  /**
+   * Loads profile information for a token and normalizes invalid sessions.
+   */
   const refreshProfileForToken = useCallback(async (activeToken: string) => {
     if (isTokenExpired(activeToken)) {
       logout('expired')
@@ -50,6 +71,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [logout])
 
+  /**
+   * Refreshes profile information for the active token.
+   */
   const refreshProfile = useCallback(async () => {
     if (!token) {
       logout(null)
@@ -59,6 +83,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await refreshProfileForToken(token)
   }, [logout, refreshProfileForToken, token])
 
+  /**
+   * Signs the user in and persists the received token.
+   */
   const login = useCallback(async (payload: LoginRequest) => {
     const response = await authApi.login(payload)
 
@@ -73,10 +100,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     persistToken(response.token)
   }, [logout])
 
+  /**
+   * Clears one-time session notice state.
+   */
   const clearSessionNotice = useCallback(() => {
     setSessionNotice(null)
   }, [])
 
+  /**
+   * Registers a new user account.
+   */
   const register = useCallback(async (payload: RegisterRequest) => {
     return authApi.register(payload)
   }, [])

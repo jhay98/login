@@ -6,6 +6,9 @@ import { LoginPage } from './pages/LoginPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { RegisterPage } from './pages/RegisterPage'
 
+/**
+ * Redirects the root route to either login or profile depending on auth state.
+ */
 function HomeRedirect() {
   const { isAuthenticated, isInitializing } = useAuth()
 
@@ -16,6 +19,9 @@ function HomeRedirect() {
   return <Navigate to={isAuthenticated ? '/profile' : '/login'} replace />
 }
 
+/**
+ * Root application router.
+ */
 function App() {
   return (
     <Routes>

@@ -1,9 +1,15 @@
+/**
+ * Decodes a base64url-encoded JWT segment.
+ */
 function decodeBase64Url(value: string): string {
   const normalized = value.replace(/-/g, '+').replace(/_/g, '/')
   const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), '=')
   return atob(padded)
 }
 
+/**
+ * Extracts JWT expiration as a Unix epoch value in milliseconds.
+ */
 export function getTokenExpiryEpochMs(token: string): number | null {
   try {
     const parts = token.split('.')
@@ -22,6 +28,9 @@ export function getTokenExpiryEpochMs(token: string): number | null {
   }
 }
 
+/**
+ * Indicates whether a JWT token is expired or invalid.
+ */
 export function isTokenExpired(token: string, skewSeconds = 10): boolean {
   const exp = getTokenExpiryEpochMs(token)
   if (!exp) {
