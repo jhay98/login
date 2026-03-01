@@ -8,7 +8,7 @@ const { mockUseAuth, mockNavigate } = vi.hoisted(() => ({
   mockNavigate: vi.fn(),
 }))
 
-vi.mock('../context/AuthContext', () => ({
+vi.mock('../context/useAuth', () => ({
   useAuth: () => mockUseAuth(),
 }))
 

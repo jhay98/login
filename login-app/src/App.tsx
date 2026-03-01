@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import './App.css'
 import { PrivateRoute } from './components/PrivateRoute'
-import { useAuth } from './context/AuthContext'
+import { useAuth } from './context/useAuth'
 import { LoginPage } from './pages/LoginPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { RegisterPage } from './pages/RegisterPage'

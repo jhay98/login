@@ -1,27 +1,11 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { ApiError, authApi } from '../lib/api'
 import { isTokenExpired } from '../lib/token'
 import type { LoginRequest, RegisterRequest, User } from '../types/auth'
+import { AuthContext, type AuthContextValue, type SessionNotice } from './auth-context'
 
 const SESSION_TOKEN_KEY = 'auth_token'
-
-type SessionNotice = 'expired' | null
-
-interface AuthContextValue {
-  user: User | null
-  token: string | null
-  isAuthenticated: boolean
-  isInitializing: boolean
-  sessionNotice: SessionNotice
-  clearSessionNotice: () => void
-  login: (payload: LoginRequest) => Promise<void>
-  register: (payload: RegisterRequest) => Promise<User>
-  logout: (reason?: SessionNotice) => void
-  refreshProfile: () => Promise<void>
-}
-
-const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 function persistToken(token: string | null) {
   if (!token) {
@@ -38,21 +22,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isInitializing, setIsInitializing] = useState(true)
   const [sessionNotice, setSessionNotice] = useState<SessionNotice>(null)
 
-  function logout(reason: SessionNotice = null) {
+  const logout = useCallback((reason: SessionNotice = null) => {
     setUser(null)
     setToken(null)
     setSessionNotice(reason)
     persistToken(null)
-  }
+  }, [])
 
-  async function refreshProfile(nextToken?: string) {
-    const activeToken = nextToken ?? token
-
-    if (!activeToken) {
-      logout(null)
-      return
-    }
-
+  const refreshProfileForToken = useCallback(async (activeToken: string) => {
     if (isTokenExpired(activeToken)) {
       logout('expired')
       return
@@ -71,9 +48,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       throw error
     }
-  }
+  }, [logout])
 
-  async function login(payload: LoginRequest) {
+  const refreshProfile = useCallback(async () => {
+    if (!token) {
+      logout(null)
+      return
+    }
+
+    await refreshProfileForToken(token)
+  }, [logout, refreshProfileForToken, token])
+
+  const login = useCallback(async (payload: LoginRequest) => {
     const response = await authApi.login(payload)
 
     if (isTokenExpired(response.token)) {
@@ -85,11 +71,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(response.user)
     setSessionNotice(null)
     persistToken(response.token)
-  }
+  }, [logout])
 
-  function clearSessionNotice() {
+  const clearSessionNotice = useCallback(() => {
     setSessionNotice(null)
-  }
+  }, [])
+
+  const register = useCallback(async (payload: RegisterRequest) => {
+    return authApi.register(payload)
+  }, [])
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -101,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        await refreshProfile(storedToken)
+        await refreshProfileForToken(storedToken)
       } catch {
         logout(null)
       } finally {
@@ -110,11 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     void initializeAuth()
-  }, [])
-
-  async function register(payload: RegisterRequest) {
-    return authApi.register(payload)
-  }
+  }, [logout, refreshProfileForToken])
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -127,20 +113,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login,
       register,
       logout,
-      refreshProfile: async () => refreshProfile(),
+      refreshProfile,
     }),
-    [isInitializing, sessionNotice, token, user],
+    [clearSessionNotice, isInitializing, login, logout, refreshProfile, register, sessionNotice, token, user],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext)
-
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider')
-  }
-
-  return context
 }
