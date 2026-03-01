@@ -82,10 +82,31 @@ jobs:
       - name: Run AuthAPI integration tests
         run: dotnet test ./tests/AuthAPI.IntegrationTests/AuthAPI.IntegrationTests.csproj --configuration Release --no-build
 
+  activityapi-validate:
+    name: ActivityAPI Validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore ActivityAPI tests
+        run: dotnet restore ./tests/ActivityAPI.IntegrationTests/ActivityAPI.IntegrationTests.csproj
+
+      - name: Build ActivityAPI tests
+        run: dotnet build ./tests/ActivityAPI.IntegrationTests/ActivityAPI.IntegrationTests.csproj --configuration Release --no-restore
+
+      - name: Run ActivityAPI integration tests
+        run: dotnet test ./tests/ActivityAPI.IntegrationTests/ActivityAPI.IntegrationTests.csproj --configuration Release --no-build
+
   build-push-frontend:
     name: Build & Push Frontend
     runs-on: ubuntu-latest
-    needs: [frontend-validate, backend-validate, authapi-validate]
+    needs: [frontend-validate, backend-validate, authapi-validate, activityapi-validate]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -106,7 +127,7 @@ jobs:
   build-push-backend:
     name: Build & Push Backend
     runs-on: ubuntu-latest
-    needs: [frontend-validate, backend-validate, authapi-validate]
+    needs: [frontend-validate, backend-validate, authapi-validate, activityapi-validate]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -127,7 +148,7 @@ jobs:
   build-push-authapi:
     name: Build & Push AuthAPI
     runs-on: ubuntu-latest
-    needs: [frontend-validate, backend-validate, authapi-validate]
+    needs: [frontend-validate, backend-validate, authapi-validate, activityapi-validate]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -148,7 +169,7 @@ jobs:
   build-push-activityapi:
     name: Build & Push ActivityAPI
     runs-on: ubuntu-latest
-    needs: [frontend-validate, backend-validate, authapi-validate]
+    needs: [frontend-validate, backend-validate, authapi-validate, activityapi-validate]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
