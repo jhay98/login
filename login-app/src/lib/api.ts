@@ -1,5 +1,7 @@
 import type {
+  ActivityEvent,
   ApiErrorShape,
+  CreateActivityRequest,
   LoginRequest,
   LoginResponse,
   RefreshTokenResponse,
@@ -104,6 +106,27 @@ export const authApi = {
       headers: {
         Authorization: `Bearer ${token}`,
       },
+    })
+  },
+
+  /** Retrieves recent activity records. */
+  recentActivity(token: string, count = 25) {
+    return request<RefreshTokenResponse<ActivityEvent[]>>(`/activity/${count}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  },
+
+  /** Creates an activity record. */
+  recordActivity(token: string, payload: CreateActivityRequest) {
+    return request<RefreshTokenResponse<ActivityEvent>>('/activity', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
     })
   },
 }

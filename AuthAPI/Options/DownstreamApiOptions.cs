@@ -11,6 +11,11 @@ public class DownstreamApiOptions
     public string BaseUrl { get; set; } = string.Empty;
 
     /// <summary>
+    /// Gets or sets the base URL of the Activity API.
+    /// </summary>
+    public string ActivityBaseUrl { get; set; } = string.Empty;
+
+    /// <summary>
     /// Gets or sets an optional shared internal API key used for service-to-service calls.
     /// </summary>
     public string InternalApiKey { get; set; } = string.Empty;

@@ -1,12 +1,14 @@
 using AutoMapper;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using LoginAPI.Authentication;
 using LoginAPI.Data;
 using LoginAPI.Data.Repositories;
 using LoginAPI.Interfaces;
 using LoginAPI.Middleware;
 using LoginAPI.Services;
 using LoginAPI.Validators;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 
@@ -30,6 +32,22 @@ builder.Services.AddAutoMapper(typeof(Program));
 // Register FluentValidation
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
+
+builder.Services.AddAuthentication("InternalApiKey")
+    .AddScheme<AuthenticationSchemeOptions, InternalApiKeyAuthenticationHandler>(
+        "InternalApiKey",
+        _ =>
+        {
+        });
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("InternalApi", policy =>
+    {
+        policy.AddAuthenticationSchemes("InternalApiKey");
+        policy.RequireAuthenticatedUser();
+    });
+});
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -66,6 +84,9 @@ if (app.Environment.IsDevelopment())
 }
 
 //app.UseHttpsRedirection();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 

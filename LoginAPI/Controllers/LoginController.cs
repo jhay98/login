@@ -1,6 +1,6 @@
-﻿using LoginAPI.Filters;
-using LoginAPI.Interfaces;
+﻿using LoginAPI.Interfaces;
 using LoginAPI.Models.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LoginAPI.Controllers;
@@ -9,19 +9,19 @@ namespace LoginAPI.Controllers;
 /// Exposes authentication and user profile endpoints.
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
-[RequireInternalApiKey]
-public class AuthController : ControllerBase
+[Route("api/auth")]
+[Authorize(Policy = "InternalApi")]
+public class LoginController : ControllerBase
 {
     private readonly IAuthService _authService;
-    private readonly ILogger<AuthController> _logger;
+    private readonly ILogger<LoginController> _logger;
     
     /// <summary>
-    /// Initializes a new instance of the <see cref="AuthController"/> class.
+    /// Initializes a new instance of the <see cref="LoginController"/> class.
     /// </summary>
     /// <param name="authService">Authentication service.</param>
     /// <param name="logger">Logger instance.</param>
-    public AuthController(IAuthService authService, ILogger<AuthController> logger)
+    public LoginController(IAuthService authService, ILogger<LoginController> logger)
     {
         _authService = authService;
         _logger = logger;

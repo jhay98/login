@@ -18,14 +18,14 @@ services:
   backend:
     image: ${DOCKER_HUB_USER}/${DOCKER_HUB_REPO}:${DOCKER_HUB_BACKEND_TAG}
     environment:
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - ConnectionStrings__DefaultConnection=Host=login-postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       - InternalApi__Key=${INTERNAL_API_KEY}
       - DEMO_USER_EMAIL=${DEMO_USER_EMAIL}
       - DEMO_USER_PASSWORD=${DEMO_USER_PASSWORD}
       - DEMO_USER_FIRST_NAME=${DEMO_USER_FIRST_NAME}
       - DEMO_USER_LAST_NAME=${DEMO_USER_LAST_NAME}
     depends_on:
-      postgres:
+      login-postgres:
         condition: service_healthy
     restart: unless-stopped
 
@@ -36,12 +36,24 @@ services:
       - JwtSettings__Issuer=LoginAPI
       - JwtSettings__Audience=LoginAPIUsers
       - DownstreamApi__BaseUrl=http://backend:8080
+      - DownstreamApi__ActivityBaseUrl=http://activityapi:8080
       - DownstreamApi__InternalApiKey=${INTERNAL_API_KEY}
     depends_on:
       - backend
+      - activityapi
     restart: unless-stopped
 
-  postgres:
+  activityapi:
+    image: ${DOCKER_HUB_USER}/${DOCKER_HUB_REPO}:${DOCKER_HUB_ACTIVITY_TAG}
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=activity-postgres;Port=5432;Database=${ACTIVITY_POSTGRES_DB};Username=${ACTIVITY_POSTGRES_USER};Password=${ACTIVITY_POSTGRES_PASSWORD}
+      - InternalApi__Key=${INTERNAL_API_KEY}
+    depends_on:
+      activity-postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  login-postgres:
     image: postgres:17-alpine
     ports:
       - "127.0.0.1:5432:5432"
@@ -58,5 +70,23 @@ services:
       retries: 5
     restart: unless-stopped
 
+  activity-postgres:
+    image: postgres:17-alpine
+    ports:
+      - "127.0.0.1:5434:5432"
+    environment:
+      - POSTGRES_DB=${ACTIVITY_POSTGRES_DB}
+      - POSTGRES_USER=${ACTIVITY_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${ACTIVITY_POSTGRES_PASSWORD}
+    volumes:
+      - activity_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${ACTIVITY_POSTGRES_USER} -d ${ACTIVITY_POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
 volumes:
   postgres_data:
+  activity_postgres_data:

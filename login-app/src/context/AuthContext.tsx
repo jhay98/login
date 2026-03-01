@@ -104,6 +104,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUser(response.user)
     setSessionNotice(null)
     persistToken(response.token)
+
+    void authApi.recordActivity(response.token, {
+      userId: response.user.id,
+      eventType: 'user_login',
+      userAgent: navigator.userAgent,
+      metadata: 'source=login-app',
+    }).catch(() => {
+      // Do not block login when activity capture fails.
+    })
   }, [logout])
 
   /**

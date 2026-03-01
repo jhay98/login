@@ -6,7 +6,7 @@ using AuthAPI.Models;
 namespace AuthAPI.Services;
 
 /// <summary>
-/// Handles forwarding AuthAPI requests to LoginAPI and shaping successful responses.
+/// Handles forwarding AuthAPI requests to downstream APIs and shaping successful responses.
 /// </summary>
 public sealed class DownstreamProxyService : IDownstreamProxyService
 {
@@ -31,9 +31,9 @@ public sealed class DownstreamProxyService : IDownstreamProxyService
     }
 
     /// <inheritdoc />
-    public async Task<IResult> ProxyAsync(HttpContext httpContext, string downstreamPath, CancellationToken cancellationToken)
+    public async Task<IResult> ProxyAsync(HttpContext httpContext, string downstreamPath, CancellationToken cancellationToken, DownstreamApiTarget target = DownstreamApiTarget.Login)
     {
-        var downstream = await ProxyRawAsync(httpContext, downstreamPath, cancellationToken);
+        var downstream = await ProxyRawAsync(httpContext, downstreamPath, cancellationToken, target);
 
         if (downstream.BodyBytes.Length == 0)
         {
@@ -45,9 +45,9 @@ public sealed class DownstreamProxyService : IDownstreamProxyService
     }
 
     /// <inheritdoc />
-    public async Task<IResult> ProxyWithRefreshAsync(HttpContext httpContext, string downstreamPath, CancellationToken cancellationToken)
+    public async Task<IResult> ProxyWithRefreshAsync(HttpContext httpContext, string downstreamPath, CancellationToken cancellationToken, DownstreamApiTarget target = DownstreamApiTarget.Login)
     {
-        var downstream = await ProxyRawAsync(httpContext, downstreamPath, cancellationToken);
+        var downstream = await ProxyRawAsync(httpContext, downstreamPath, cancellationToken, target);
 
         if (downstream.StatusCode >= 400)
         {
@@ -86,9 +86,9 @@ public sealed class DownstreamProxyService : IDownstreamProxyService
     }
 
     /// <inheritdoc />
-    public async Task<IResult> ProxyLoginWithTokenAsync(HttpContext httpContext, string downstreamPath, CancellationToken cancellationToken)
+    public async Task<IResult> ProxyLoginWithTokenAsync(HttpContext httpContext, string downstreamPath, CancellationToken cancellationToken, DownstreamApiTarget target = DownstreamApiTarget.Login)
     {
-        var downstream = await ProxyRawAsync(httpContext, downstreamPath, cancellationToken);
+        var downstream = await ProxyRawAsync(httpContext, downstreamPath, cancellationToken, target);
 
         if (downstream.StatusCode >= 400)
         {
@@ -130,16 +130,40 @@ public sealed class DownstreamProxyService : IDownstreamProxyService
         }
     }
 
+    /// <inheritdoc />
+    public async Task<IResult> ProxyRegisterAndRecordActivityAsync(HttpContext httpContext, string downstreamPath, CancellationToken cancellationToken)
+    {
+        var downstream = await ProxyRawAsync(httpContext, downstreamPath, cancellationToken, DownstreamApiTarget.Login);
+
+        if (downstream.StatusCode < 400)
+        {
+            await TryRecordAccountCreatedActivityAsync(httpContext, downstream.BodyBytes, cancellationToken);
+        }
+
+        if (downstream.BodyBytes.Length == 0)
+        {
+            return Results.StatusCode(downstream.StatusCode);
+        }
+
+        var body = Encoding.UTF8.GetString(downstream.BodyBytes);
+        return Results.Content(body, downstream.ContentType ?? "application/json", Encoding.UTF8, downstream.StatusCode);
+    }
+
     /// <summary>
-    /// Forwards an HTTP request to the downstream API and captures the response body.
+    /// Forwards an HTTP request to the selected downstream API and captures the response body.
     /// </summary>
     /// <param name="httpContext">Current HTTP request context.</param>
     /// <param name="downstreamPath">Relative downstream route path.</param>
     /// <param name="cancellationToken">Token used to cancel the operation.</param>
     /// <returns>Captured downstream response details.</returns>
-    private async Task<DownstreamResponse> ProxyRawAsync(HttpContext httpContext, string downstreamPath, CancellationToken cancellationToken)
+    private async Task<DownstreamResponse> ProxyRawAsync(
+        HttpContext httpContext,
+        string downstreamPath,
+        CancellationToken cancellationToken,
+        DownstreamApiTarget target = DownstreamApiTarget.Login)
     {
-        var baseUrl = _configuration["DownstreamApi:BaseUrl"];
+        var baseUrl = GetBaseUrl(target);
+
         if (string.IsNullOrWhiteSpace(baseUrl))
         {
             return new DownstreamResponse(
@@ -192,6 +216,119 @@ public sealed class DownstreamProxyService : IDownstreamProxyService
         var contentType = response.Content.Headers.ContentType?.ToString();
 
         return new DownstreamResponse((int)response.StatusCode, contentType, bodyBytes);
+    }
+
+    /// <summary>
+    /// Attempts to record an account-created event in ActivityAPI.
+    /// </summary>
+    /// <param name="httpContext">Current request context.</param>
+    /// <param name="registerResponseBody">Raw registration response payload.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    private async Task TryRecordAccountCreatedActivityAsync(HttpContext httpContext, byte[] registerResponseBody, CancellationToken cancellationToken)
+    {
+        if (!TryReadUserId(registerResponseBody, out var userId) || userId <= 0)
+        {
+            return;
+        }
+
+        var activityBaseUrl = GetBaseUrl(DownstreamApiTarget.Activity);
+        if (string.IsNullOrWhiteSpace(activityBaseUrl))
+        {
+            return;
+        }
+
+        var payload = new
+        {
+            UserId = userId,
+            EventType = "account_created",
+            IpAddress = httpContext.Connection.RemoteIpAddress?.ToString(),
+            UserAgent = httpContext.Request.Headers.UserAgent.ToString(),
+            Metadata = "source=auth-api"
+        };
+
+        var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+        using var requestMessage = new HttpRequestMessage(HttpMethod.Post, new Uri($"{activityBaseUrl.TrimEnd('/')}/api/activity"))
+        {
+            Content = content
+        };
+
+        var internalApiKey = _configuration["DownstreamApi:InternalApiKey"];
+        if (!string.IsNullOrWhiteSpace(internalApiKey))
+        {
+            requestMessage.Headers.Remove("X-Internal-Api-Key");
+            requestMessage.Headers.Add("X-Internal-Api-Key", internalApiKey);
+        }
+
+        try
+        {
+            var httpClient = _httpClientFactory.CreateClient("LoginApiProxy");
+            using var response = await httpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            _ = response.StatusCode;
+        }
+        catch
+        {
+            // Do not fail registration if activity capture fails.
+        }
+    }
+
+    /// <summary>
+    /// Resolves downstream base URL for target API.
+    /// </summary>
+    /// <param name="target">Downstream API target.</param>
+    /// <returns>Configured base URL.</returns>
+    private string? GetBaseUrl(DownstreamApiTarget target)
+    {
+        return target switch
+        {
+            DownstreamApiTarget.Activity => _configuration["DownstreamApi:ActivityBaseUrl"],
+            _ => _configuration["DownstreamApi:BaseUrl"]
+        };
+    }
+
+    /// <summary>
+    /// Attempts to extract a user identifier from a registration response payload.
+    /// </summary>
+    /// <param name="responseBody">Raw response body bytes.</param>
+    /// <param name="userId">Resolved user id when present.</param>
+    /// <returns><c>true</c> when a user id was found; otherwise <c>false</c>.</returns>
+    private static bool TryReadUserId(byte[] responseBody, out int userId)
+    {
+        userId = 0;
+
+        if (responseBody.Length == 0)
+        {
+            return false;
+        }
+
+        try
+        {
+            using var jsonDocument = JsonDocument.Parse(responseBody);
+            if (jsonDocument.RootElement.ValueKind != JsonValueKind.Object)
+            {
+                return false;
+            }
+
+            foreach (var property in jsonDocument.RootElement.EnumerateObject())
+            {
+                if (!string.Equals(property.Name, "id", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (property.Value.ValueKind == JsonValueKind.Number && property.Value.TryGetInt32(out userId))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            return false;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
     }
 
     /// <summary>

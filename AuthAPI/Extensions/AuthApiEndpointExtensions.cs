@@ -1,4 +1,5 @@
 using AuthAPI.Interfaces;
+using AuthAPI.Models;
 
 namespace AuthAPI.Extensions;
 
@@ -34,6 +35,16 @@ public static class AuthApiEndpointExtensions
                 HandleUsersAsync)
             .RequireAuthorization("AdminOnly");
 
+        endpoints.MapPost(
+                "/api/activity",
+                HandleCreateActivityAsync)
+            .RequireAuthorization();
+
+        endpoints.MapGet(
+                "/api/activity/{count:int}",
+                HandleRecentActivityAsync)
+            .RequireAuthorization();
+
         return endpoints;
     }
 
@@ -58,7 +69,7 @@ public static class AuthApiEndpointExtensions
         IDownstreamProxyService proxyService,
         CancellationToken cancellationToken)
     {
-        return proxyService.ProxyAsync(httpContext, "/api/auth/register", cancellationToken);
+        return proxyService.ProxyRegisterAndRecordActivityAsync(httpContext, "/api/auth/register", cancellationToken);
     }
 
     /// <summary>
@@ -111,5 +122,37 @@ public static class AuthApiEndpointExtensions
         CancellationToken cancellationToken)
     {
         return proxyService.ProxyWithRefreshAsync(httpContext, "/api/auth/users/internal", cancellationToken);
+    }
+
+    /// <summary>
+    /// Proxies activity creation requests to ActivityAPI.
+    /// </summary>
+    /// <param name="httpContext">Current request context.</param>
+    /// <param name="proxyService">Downstream proxy service.</param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    /// <returns>Created activity response from downstream API.</returns>
+    private static Task<IResult> HandleCreateActivityAsync(
+        HttpContext httpContext,
+        IDownstreamProxyService proxyService,
+        CancellationToken cancellationToken)
+    {
+        return proxyService.ProxyWithRefreshAsync(httpContext, "/api/activity", cancellationToken, DownstreamApiTarget.Activity);
+    }
+
+    /// <summary>
+    /// Proxies recent activity lookup requests to ActivityAPI.
+    /// </summary>
+    /// <param name="count">Maximum number of records to return.</param>
+    /// <param name="httpContext">Current request context.</param>
+    /// <param name="proxyService">Downstream proxy service.</param>
+    /// <param name="cancellationToken">Token used to cancel the operation.</param>
+    /// <returns>Recent activity list from downstream API.</returns>
+    private static Task<IResult> HandleRecentActivityAsync(
+        int count,
+        HttpContext httpContext,
+        IDownstreamProxyService proxyService,
+        CancellationToken cancellationToken)
+    {
+        return proxyService.ProxyWithRefreshAsync(httpContext, $"/api/activity/{count}", cancellationToken, DownstreamApiTarget.Activity);
     }
 }

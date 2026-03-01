@@ -34,6 +34,26 @@ export interface RefreshTokenResponse<T> {
   data: T
 }
 
+/** Activity event returned by the activity API. */
+export interface ActivityEvent {
+  id: number
+  userId: number
+  eventType: string
+  ipAddress: string | null
+  userAgent: string | null
+  metadata: string | null
+  occurredAtUtc: string
+}
+
+/** Request payload for creating an activity event. */
+export interface CreateActivityRequest {
+  userId: number
+  eventType: string
+  ipAddress?: string | null
+  userAgent?: string | null
+  metadata?: string | null
+}
+
 /** Error body shape used by backend API responses. */
 export interface ApiErrorShape {
   message?: string
