@@ -6,6 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace LoginAPI.Controllers;
 
+/// <summary>
+/// Exposes authentication and user profile endpoints.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
@@ -13,6 +16,11 @@ public class AuthController : ControllerBase
     private readonly IAuthService _authService;
     private readonly ILogger<AuthController> _logger;
     
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AuthController"/> class.
+    /// </summary>
+    /// <param name="authService">Authentication service.</param>
+    /// <param name="logger">Logger instance.</param>
     public AuthController(IAuthService authService, ILogger<AuthController> logger)
     {
         _authService = authService;
@@ -20,8 +28,10 @@ public class AuthController : ControllerBase
     }
     
     /// <summary>
-    /// Register a new user
+    /// Registers a new user.
     /// </summary>
+    /// <param name="request">Registration request payload.</param>
+    /// <returns>The created user.</returns>
     [HttpPost("register")]
     [ProducesResponseType(typeof(UserDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
@@ -40,8 +50,10 @@ public class AuthController : ControllerBase
     }
     
     /// <summary>
-    /// Login with email and password
+    /// Authenticates a user with email and password.
     /// </summary>
+    /// <param name="request">Login request payload.</param>
+    /// <returns>A login response containing the JWT token and user data.</returns>
     [HttpPost("login")]
     [ProducesResponseType(typeof(LoginResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status401Unauthorized)]
@@ -60,8 +72,9 @@ public class AuthController : ControllerBase
     }
     
     /// <summary>
-    /// Get current user details (requires authentication)
+    /// Gets the currently authenticated user details.
     /// </summary>
+    /// <returns>The current user profile.</returns>
     [Authorize]
     [HttpGet("me")]
     [ProducesResponseType(typeof(UserDto), StatusCodes.Status200OK)]
@@ -89,8 +102,9 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Get all users (admin role required)
+    /// Gets all users.
     /// </summary>
+    /// <returns>A list of users.</returns>
     [Authorize(Roles = "Admin")]
     [HttpGet("users")]
     [ProducesResponseType(typeof(List<UserDto>), StatusCodes.Status200OK)]

@@ -3,10 +3,18 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LoginAPI.Data;
 
+/// <summary>
+/// Seeds an optional demo user at application startup.
+/// </summary>
 public static class DemoUserSeeder
 {
     private const string DefaultRoleName = "User";
 
+    /// <summary>
+    /// Seeds a demo user when required configuration values are present.
+    /// </summary>
+    /// <param name="services">Root service provider.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     public static async Task SeedAsync(IServiceProvider services, CancellationToken cancellationToken = default)
     {
         using var scope = services.CreateScope();
@@ -78,6 +86,12 @@ public static class DemoUserSeeder
         logger.LogInformation("Demo user seeded successfully: {Email}", email);
     }
 
+    /// <summary>
+    /// Returns the first non-empty configuration value for the provided keys.
+    /// </summary>
+    /// <param name="configuration">Application configuration.</param>
+    /// <param name="keys">Candidate configuration keys.</param>
+    /// <returns>The first non-empty value found; otherwise <see langword="null"/>.</returns>
     private static string? GetValue(IConfiguration configuration, params string[] keys)
     {
         foreach (var key in keys)

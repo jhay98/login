@@ -4,16 +4,24 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LoginAPI.Data.Repositories;
 
+/// <summary>
+/// Entity Framework implementation of <see cref="IUserRepository"/>.
+/// </summary>
 public class UserRepository : IUserRepository
 {
     private readonly AppDbContext _context;
     private const string DefaultRoleName = "User";
     
+    /// <summary>
+    /// Initializes a new instance of the <see cref="UserRepository"/> class.
+    /// </summary>
+    /// <param name="context">Database context.</param>
     public UserRepository(AppDbContext context)
     {
         _context = context;
     }
     
+    /// <inheritdoc />
     public async Task<User?> GetByEmailAsync(string email)
     {
         return await _context.Users
@@ -22,6 +30,7 @@ public class UserRepository : IUserRepository
             .FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
     }
     
+    /// <inheritdoc />
     public async Task<User?> GetByIdAsync(int id)
     {
         return await _context.Users
@@ -30,6 +39,7 @@ public class UserRepository : IUserRepository
             .FirstOrDefaultAsync(u => u.Id == id);
     }
 
+    /// <inheritdoc />
     public async Task<List<User>> GetAllAsync()
     {
         return await _context.Users
@@ -40,6 +50,7 @@ public class UserRepository : IUserRepository
             .ToListAsync();
     }
     
+    /// <inheritdoc />
     public async Task<User> CreateAsync(User user)
     {
         user.CreatedAt = DateTime.UtcNow;
@@ -71,6 +82,7 @@ public class UserRepository : IUserRepository
         return user;
     }
     
+    /// <inheritdoc />
     public async Task<bool> EmailExistsAsync(string email)
     {
         return await _context.Users

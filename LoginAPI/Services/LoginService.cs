@@ -11,6 +11,9 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace LoginAPI.Services;
 
+/// <summary>
+/// Implements authentication and account workflows.
+/// </summary>
 public class AuthService : IAuthService
 {
     private readonly IUserRepository _userRepository;
@@ -18,6 +21,13 @@ public class AuthService : IAuthService
     private readonly ILogger<AuthService> _logger;
     private readonly IMapper _mapper;
     
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AuthService"/> class.
+    /// </summary>
+    /// <param name="userRepository">Repository used for user persistence and lookup.</param>
+    /// <param name="jwtSettings">JWT configuration options.</param>
+    /// <param name="logger">Logger for audit and diagnostics.</param>
+    /// <param name="mapper">Mapper for entity-to-DTO conversion.</param>
     public AuthService(
         IUserRepository userRepository, 
         IOptions<JwtSettings> jwtSettings,
@@ -30,6 +40,7 @@ public class AuthService : IAuthService
         _mapper = mapper;
     }
     
+    /// <inheritdoc />
     public async Task<UserDto> RegisterAsync(RegisterRequestDto request)
     {
         // Check if email already exists
@@ -59,6 +70,7 @@ public class AuthService : IAuthService
         return _mapper.Map<UserDto>(createdUser);
     }
     
+    /// <inheritdoc />
     public async Task<LoginResponseDto> LoginAsync(LoginRequestDto request)
     {
         // Get user by email
@@ -89,6 +101,7 @@ public class AuthService : IAuthService
         };
     }
     
+    /// <inheritdoc />
     public async Task<UserDto> GetUserByIdAsync(int userId)
     {
         var user = await _userRepository.GetByIdAsync(userId);
@@ -102,12 +115,18 @@ public class AuthService : IAuthService
         return _mapper.Map<UserDto>(user);
     }
 
+    /// <inheritdoc />
     public async Task<List<UserDto>> GetAllUsersAsync()
     {
         var users = await _userRepository.GetAllAsync();
         return _mapper.Map<List<UserDto>>(users);
     }
     
+    /// <summary>
+    /// Builds a signed JWT access token for the specified user.
+    /// </summary>
+    /// <param name="user">The authenticated user.</param>
+    /// <returns>A signed JWT token string.</returns>
     private string GenerateJwtToken(User user)
     {
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));

@@ -4,17 +4,30 @@ using LoginAPI.Models.DTOs;
 
 namespace LoginAPI.Middleware;
 
+/// <summary>
+/// Handles unhandled exceptions and returns standardized API error responses.
+/// </summary>
 public class GlobalExceptionMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<GlobalExceptionMiddleware> _logger;
     
+    /// <summary>
+    /// Initializes a new instance of the <see cref="GlobalExceptionMiddleware"/> class.
+    /// </summary>
+    /// <param name="next">Next middleware delegate.</param>
+    /// <param name="logger">Logger instance.</param>
     public GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExceptionMiddleware> logger)
     {
         _next = next;
         _logger = logger;
     }
     
+    /// <summary>
+    /// Invokes the middleware.
+    /// </summary>
+    /// <param name="context">Current HTTP context.</param>
+    /// <returns>A task that completes when request handling is finished.</returns>
     public async Task InvokeAsync(HttpContext context)
     {
         try
@@ -28,6 +41,12 @@ public class GlobalExceptionMiddleware
         }
     }
     
+    /// <summary>
+    /// Maps exceptions to API-friendly HTTP responses.
+    /// </summary>
+    /// <param name="context">Current HTTP context.</param>
+    /// <param name="exception">The exception to handle.</param>
+    /// <returns>A task that writes the response.</returns>
     private static Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
         var statusCode = HttpStatusCode.InternalServerError;

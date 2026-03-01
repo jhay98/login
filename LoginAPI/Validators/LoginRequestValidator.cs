@@ -3,8 +3,14 @@ using LoginAPI.Models.DTOs;
 
 namespace LoginAPI.Validators;
 
+/// <summary>
+/// Validates <see cref="LoginRequestDto"/> payloads.
+/// </summary>
 public class LoginRequestValidator : AbstractValidator<LoginRequestDto>
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="LoginRequestValidator"/> class.
+    /// </summary>
     public LoginRequestValidator()
     {
         RuleFor(x => x.Email)
