@@ -29,4 +29,9 @@ public class UserDto
     /// Gets or sets the account creation timestamp (UTC).
     /// </summary>
     public DateTime CreatedAt { get; set; }
+
+    /// <summary>
+    /// Gets or sets the normalized role names assigned to the user.
+    /// </summary>
+    public List<string> Roles { get; set; } = [];
 }

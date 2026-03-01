@@ -1,16 +1,24 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ApiError } from '../lib/api'
+import { ApiError, authApi } from '../lib/api'
 import { useAuth } from '../context/useAuth'
+import type { User } from '../types/auth'
 
 /**
  * Protected profile page for viewing and refreshing current user data.
  */
 export function ProfilePage() {
   const navigate = useNavigate()
-  const { user, logout, refreshProfile } = useAuth()
+  const { user, token, logout, refreshProfile } = useAuth()
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [users, setUsers] = useState<User[]>([])
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false)
+  const [usersError, setUsersError] = useState<string | null>(null)
+
+  const isAdmin = Boolean(
+    user?.roles?.some((role) => role.toLowerCase() === 'admin'),
+  )
 
   useEffect(() => {
     if (user) {
@@ -37,9 +45,37 @@ export function ProfilePage() {
     void load()
   }, [refreshProfile, user])
 
+  useEffect(() => {
+    if (!user || !token || !isAdmin) {
+      setUsers([])
+      setUsersError(null)
+      return
+    }
+
+    const loadUsers = async () => {
+      setIsLoadingUsers(true)
+      setUsersError(null)
+
+      try {
+        const response = await authApi.users(token)
+        setUsers(response.data)
+      } catch (err) {
+        if (err instanceof ApiError) {
+          setUsersError(err.message)
+        } else {
+          setUsersError('Unable to load users right now.')
+        }
+      } finally {
+        setIsLoadingUsers(false)
+      }
+    }
+
+    void loadUsers()
+  }, [isAdmin, token, user])
+
   return (
     <main className="page profile-page">
-      <section className="card">
+      <section className={`card ${isAdmin ? 'wide' : ''}`.trim()}>
         <h1>User profile</h1>
         <p className="muted">This page is protected.</p>
 
@@ -64,7 +100,80 @@ export function ProfilePage() {
               <dt>Email</dt>
               <dd>{user.email}</dd>
             </div>
+            <div>
+              <dt>Roles</dt>
+              <dd>{user.roles.join(', ') || 'None'}</dd>
+            </div>
           </dl>
+        )}
+
+        {isAdmin && (
+          <section className="admin-users">
+            <h2>All users</h2>
+            <p className="muted small">Visible to admins only.</p>
+
+            {isLoadingUsers && <p>Loading users...</p>}
+            {usersError && <p className="error">{usersError}</p>}
+
+            {!isLoadingUsers && !usersError && (
+              <>
+                {users.length === 0 ? (
+                  <p className="muted">No users found.</p>
+                ) : (
+                  <div className="users-table-wrap">
+                    <table className="users-table">
+                      <thead>
+                        <tr>
+                          <th>ID</th>
+                          <th>Name</th>
+                          <th>Email</th>
+                          <th>Roles</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {users.map((listedUser) => (
+                          <tr key={listedUser.id}>
+                            <td>{listedUser.id}</td>
+                            <td>{listedUser.firstName} {listedUser.lastName}</td>
+                            <td>{listedUser.email}</td>
+                            <td>{listedUser.roles.join(', ') || 'None'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!token) {
+                      return
+                    }
+
+                    setIsLoadingUsers(true)
+                    setUsersError(null)
+
+                    try {
+                      const response = await authApi.users(token)
+                      setUsers(response.data)
+                    } catch (err) {
+                      if (err instanceof ApiError) {
+                        setUsersError(err.message)
+                      } else {
+                        setUsersError('Unable to refresh user list.')
+                      }
+                    } finally {
+                      setIsLoadingUsers(false)
+                    }
+                  }}
+                  disabled={isLoadingUsers}
+                >
+                  {isLoadingUsers ? 'Refreshing users...' : 'Refresh users'}
+                </button>
+              </>
+            )}
+          </section>
         )}
 
         <div className="actions">

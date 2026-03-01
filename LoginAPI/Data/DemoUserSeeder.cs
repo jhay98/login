@@ -9,6 +9,7 @@ namespace LoginAPI.Data;
 public static class DemoUserSeeder
 {
     private const string DefaultRoleName = "User";
+    private const string AdminRoleName = "Admin";
 
     /// <summary>
     /// Seeds a demo user when required configuration values are present.
@@ -36,30 +37,43 @@ public static class DemoUserSeeder
         var lastName = GetValue(configuration, "DEMO_USER_LAST_NAME", "DemoUser:LastName") ?? "User";
         email = email.Trim().ToLowerInvariant();
 
-        var userExists = await dbContext.Users.AsNoTracking()
-            .AnyAsync(u => u.Email == email, cancellationToken);
-
-        if (userExists)
-        {
-            logger.LogInformation("Demo user already exists: {Email}", email);
-            return;
-        }
-
         var now = DateTime.UtcNow;
 
-        var defaultRole = await dbContext.Roles
-            .FirstOrDefaultAsync(r => r.Name == DefaultRoleName, cancellationToken);
+        var defaultRole = await EnsureRoleAsync(
+            dbContext,
+            DefaultRoleName,
+            "Default role for registered users",
+            now,
+            cancellationToken);
 
-        if (defaultRole == null)
+        var adminRole = await EnsureRoleAsync(
+            dbContext,
+            AdminRoleName,
+            "Administrative role for privileged users",
+            now,
+            cancellationToken);
+
+        var existingUser = await dbContext.Users
+            .Include(u => u.UserRoles)
+            .ThenInclude(ur => ur.Role)
+            .FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
+
+        if (existingUser != null)
         {
-            defaultRole = new Role
-            {
-                Name = DefaultRoleName,
-                Description = "Default role for registered users",
-                CreatedAt = now
-            };
+            var userRolesUpdated = EnsureUserHasRole(existingUser, defaultRole, now)
+                | EnsureUserHasRole(existingUser, adminRole, now);
 
-            dbContext.Roles.Add(defaultRole);
+            if (userRolesUpdated)
+            {
+                await dbContext.SaveChangesAsync(cancellationToken);
+                logger.LogInformation("Demo user updated with required roles: {Email}", email);
+            }
+            else
+            {
+                logger.LogInformation("Demo user already exists with required roles: {Email}", email);
+            }
+
+            return;
         }
 
         var user = new User
@@ -76,6 +90,11 @@ public static class DemoUserSeeder
                 {
                     Role = defaultRole,
                     AssignedAt = now
+                },
+                new()
+                {
+                    Role = adminRole,
+                    AssignedAt = now
                 }
             }
         };
@@ -84,6 +103,69 @@ public static class DemoUserSeeder
         await dbContext.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Demo user seeded successfully: {Email}", email);
+    }
+
+    /// <summary>
+    /// Ensures a role with the provided name exists.
+    /// </summary>
+    /// <param name="dbContext">Database context.</param>
+    /// <param name="roleName">Role name to find or create.</param>
+    /// <param name="description">Role description when creating a new role.</param>
+    /// <param name="now">Current UTC timestamp.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The existing or newly-created role.</returns>
+    private static async Task<Role> EnsureRoleAsync(
+        AppDbContext dbContext,
+        string roleName,
+        string description,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        var role = await dbContext.Roles
+            .FirstOrDefaultAsync(r => r.Name == roleName, cancellationToken);
+
+        if (role != null)
+        {
+            return role;
+        }
+
+        role = new Role
+        {
+            Name = roleName,
+            Description = description,
+            CreatedAt = now
+        };
+
+        dbContext.Roles.Add(role);
+        return role;
+    }
+
+    /// <summary>
+    /// Ensures the given user has the specified role assignment.
+    /// </summary>
+    /// <param name="user">User to update.</param>
+    /// <param name="role">Role to assign when missing.</param>
+    /// <param name="assignedAt">Assignment timestamp.</param>
+    /// <returns><c>true</c> when a new assignment was added; otherwise, <c>false</c>.</returns>
+    private static bool EnsureUserHasRole(User user, Role role, DateTime assignedAt)
+    {
+        var hasRole = user.UserRoles.Any(ur =>
+            ur.Role != null
+            && string.Equals(ur.Role.Name, role.Name, StringComparison.OrdinalIgnoreCase));
+
+        if (hasRole)
+        {
+            return false;
+        }
+
+        user.UserRoles.Add(new UserRole
+        {
+            User = user,
+            Role = role,
+            AssignedAt = assignedAt
+        });
+
+        return true;
     }
 
     /// <summary>

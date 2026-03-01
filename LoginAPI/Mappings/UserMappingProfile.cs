@@ -1,6 +1,7 @@
 using AutoMapper;
 using LoginAPI.Data.Entities;
 using LoginAPI.Models.DTOs;
+using System.Linq;
 
 namespace LoginAPI.Mappings;
 
@@ -14,6 +15,13 @@ public class UserMappingProfile : Profile
     /// </summary>
     public UserMappingProfile()
     {
-        CreateMap<User, UserDto>();
+        CreateMap<User, UserDto>()
+            .ForMember(
+                dest => dest.Roles,
+                opt => opt.MapFrom(src => src.UserRoles
+                    .Select(ur => ur.Role.Name)
+                    .Where(roleName => !string.IsNullOrWhiteSpace(roleName))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList()));
     }
 }

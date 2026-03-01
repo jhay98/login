@@ -96,4 +96,14 @@ export const authApi = {
       },
     })
   },
+
+  /** Retrieves all users for admin accounts. */
+  users(token: string) {
+    return request<RefreshTokenResponse<User[]>>('/users', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  },
 }
