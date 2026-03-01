@@ -43,7 +43,7 @@ public static class AuthApiEndpointExtensions
         endpoints.MapGet(
                 "/api/activity/{count:int}",
                 HandleRecentActivityAsync)
-            .RequireAuthorization();
+            .RequireAuthorization("AdminOnly");
 
         return endpoints;
     }

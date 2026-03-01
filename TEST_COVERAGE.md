@@ -22,16 +22,7 @@ _Last updated: 2026-03-01_
 | AuthAPI | Unit | tests/AuthAPI.UnitTests/DownstreamProxyServiceTests.cs | `DownstreamProxyService` wrapping and passthrough behavior: refresh envelope success path, invalid downstream login payload (`502`), missing downstream base URL (`500`), register + best-effort activity recording path and header forwarding constraints. |
 | AuthAPI | Integration | tests/AuthAPI.IntegrationTests/AuthGatewayIntegrationTests.cs | Auth gateway endpoint behavior: unauthorized `/api/me` without token, refreshed envelope for valid `/api/me`, forbidden `/api/users` for non-admin, proxy register behavior, login token+payload issuance behavior. |
 | AuthAPI | Integration | tests/AuthAPI.IntegrationTests/UnitTest1.cs | `/health` endpoint returns `200 OK`. |
-| ActivityAPI | Unit | _None currently_ | No dedicated unit tests yet. |
+| ActivityAPI | Unit | tests/ActivityAPI.UnitTests/ActivityControllerTests.cs; tests/ActivityAPI.UnitTests/InternalApiKeyAuthenticationHandlerTests.cs | `ActivityController` validation and persistence behavior (invalid user/event type, normalization + save, count bounds + recent ordering/cap), plus `InternalApiKeyAuthenticationHandler` authentication outcomes (missing config/header, invalid key, valid key success principal). |
 | ActivityAPI | Integration | tests/ActivityAPI.IntegrationTests/ActivityEndpointsIntegrationTests.cs | `/api/activity` creation success + normalization checks, invalid create (`400`), `/api/activity/{count}` cap-to-200 behavior, invalid count (`400`), internal API key authorization checks (`401` without key). |
 
----
 
-## Validation Run Summary
-
-| Scope | Command style | Result |
-|---|---|---|
-| Backend tests | .NET test execution across unit + integration files | **37 passed, 0 failed** |
-| Frontend tests | `vitest run` | **8 passed, 0 failed** |
-
-Total currently validated in this run: **45 passing tests**.

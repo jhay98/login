@@ -53,6 +53,16 @@ public class AuthGatewayIntegrationTests : IClassFixture<CustomAuthWebApplicatio
     }
 
     [Fact]
+    public async Task GetRecentActivity_WithNonAdminToken_ReturnsForbidden()
+    {
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", CreateJwt(userId: 7, role: "User"));
+
+        var response = await _client.GetAsync("/api/activity/5");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Register_ProxiesRequestToDownstream()
     {
         var response = await _client.PostAsJsonAsync("/api/register", new

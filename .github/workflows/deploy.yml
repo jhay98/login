@@ -73,11 +73,20 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Restore AuthAPI tests
+      - name: Restore AuthAPI unit tests
+        run: dotnet restore ./tests/AuthAPI.UnitTests/AuthAPI.UnitTests.csproj
+
+      - name: Restore AuthAPI integration tests
         run: dotnet restore ./tests/AuthAPI.IntegrationTests/AuthAPI.IntegrationTests.csproj
 
-      - name: Build AuthAPI tests
+      - name: Build AuthAPI unit tests
+        run: dotnet build ./tests/AuthAPI.UnitTests/AuthAPI.UnitTests.csproj --configuration Release --no-restore
+
+      - name: Build AuthAPI integration tests
         run: dotnet build ./tests/AuthAPI.IntegrationTests/AuthAPI.IntegrationTests.csproj --configuration Release --no-restore
+
+      - name: Run AuthAPI unit tests
+        run: dotnet test ./tests/AuthAPI.UnitTests/AuthAPI.UnitTests.csproj --configuration Release --no-build
 
       - name: Run AuthAPI integration tests
         run: dotnet test ./tests/AuthAPI.IntegrationTests/AuthAPI.IntegrationTests.csproj --configuration Release --no-build
@@ -94,11 +103,20 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Restore ActivityAPI tests
+      - name: Restore ActivityAPI unit tests
+        run: dotnet restore ./tests/ActivityAPI.UnitTests/ActivityAPI.UnitTests.csproj
+
+      - name: Restore ActivityAPI integration tests
         run: dotnet restore ./tests/ActivityAPI.IntegrationTests/ActivityAPI.IntegrationTests.csproj
 
-      - name: Build ActivityAPI tests
+      - name: Build ActivityAPI unit tests
+        run: dotnet build ./tests/ActivityAPI.UnitTests/ActivityAPI.UnitTests.csproj --configuration Release --no-restore
+
+      - name: Build ActivityAPI integration tests
         run: dotnet build ./tests/ActivityAPI.IntegrationTests/ActivityAPI.IntegrationTests.csproj --configuration Release --no-restore
+
+      - name: Run ActivityAPI unit tests
+        run: dotnet test ./tests/ActivityAPI.UnitTests/ActivityAPI.UnitTests.csproj --configuration Release --no-build
 
       - name: Run ActivityAPI integration tests
         run: dotnet test ./tests/ActivityAPI.IntegrationTests/ActivityAPI.IntegrationTests.csproj --configuration Release --no-build
