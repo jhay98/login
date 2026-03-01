@@ -1,14 +1,10 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using AutoMapper;
 using LoginAPI.Data.Entities;
 using LoginAPI.Interfaces;
 using LoginAPI.Mappings;
-using LoginAPI.Models;
 using LoginAPI.Models.DTOs;
 using LoginAPI.Services;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 
 namespace LoginAPI.UnitTests;
 
@@ -96,7 +92,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task LoginAsync_WhenCredentialsAreValid_ReturnsTokenAndUser()
+    public async Task LoginAsync_WhenCredentialsAreValid_ReturnsUserAndRoles()
     {
         var user = new User
         {
@@ -123,13 +119,9 @@ public class AuthServiceTests
             Password = "Passw0rd!"
         });
 
-        Assert.False(string.IsNullOrWhiteSpace(result.Token));
         Assert.Equal(user.Id, result.User.Id);
         Assert.Equal(user.Email, result.User.Email);
-
-        var parsedToken = new JwtSecurityTokenHandler().ReadJwtToken(result.Token);
-        Assert.Contains(parsedToken.Claims, c => c.Type == "userId" && c.Value == "7");
-        Assert.Contains(parsedToken.Claims, c => c.Type == System.Security.Claims.ClaimTypes.Role && c.Value == "Admin");
+        Assert.Contains("Admin", result.Roles);
     }
 
     [Fact]
@@ -162,58 +154,11 @@ public class AuthServiceTests
         Assert.Equal("two@example.com", result[1].Email);
     }
 
-    [Fact]
-    public void GenerateTokenFromPrincipal_WithValidClaims_ReturnsTokenContainingIdentityClaims()
-    {
-        var repository = new FakeUserRepository();
-        var service = CreateService(repository);
-
-        var principal = new ClaimsPrincipal(new ClaimsIdentity(
-        [
-            new Claim("userId", "42"),
-            new Claim(ClaimTypes.NameIdentifier, "42"),
-            new Claim(ClaimTypes.Email, "session@example.com"),
-            new Claim(ClaimTypes.GivenName, "Session"),
-            new Claim(ClaimTypes.Surname, "User"),
-            new Claim(ClaimTypes.Role, "Admin")
-        ], "jwt"));
-
-        var token = service.GenerateTokenFromPrincipal(principal);
-
-        Assert.False(string.IsNullOrWhiteSpace(token));
-
-        var parsedToken = new JwtSecurityTokenHandler().ReadJwtToken(token);
-        Assert.Contains(parsedToken.Claims, c => c.Type == "userId" && c.Value == "42");
-        Assert.Contains(parsedToken.Claims, c => c.Type == JwtRegisteredClaimNames.Email && c.Value == "session@example.com");
-        Assert.Contains(parsedToken.Claims, c => c.Type == ClaimTypes.Role && c.Value == "Admin");
-    }
-
-    [Fact]
-    public void GenerateTokenFromPrincipal_WhenRequiredClaimsMissing_ThrowsInvalidOperationException()
-    {
-        var service = CreateService(new FakeUserRepository());
-
-        var principal = new ClaimsPrincipal(new ClaimsIdentity(
-        [
-            new Claim(ClaimTypes.Name, "NoEmail")
-        ], "jwt"));
-
-        Assert.Throws<InvalidOperationException>(() => service.GenerateTokenFromPrincipal(principal));
-    }
-
     private static AuthService CreateService(FakeUserRepository repository)
     {
-        var jwtOptions = Options.Create(new JwtSettings
-        {
-            SecretKey = "test-secret-key-with-at-least-32-characters",
-            Issuer = "LoginAPI.Tests",
-            Audience = "LoginAPI.Tests.Client",
-            ExpirationMinutes = 60
-        });
-
         var mapper = new MapperConfiguration(cfg => cfg.AddProfile<UserMappingProfile>()).CreateMapper();
 
-        return new AuthService(repository, jwtOptions, NullLogger<AuthService>.Instance, mapper);
+        return new AuthService(repository, NullLogger<AuthService>.Instance, mapper);
     }
 
     private sealed class FakeUserRepository : IUserRepository

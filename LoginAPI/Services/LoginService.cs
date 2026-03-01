@@ -1,13 +1,7 @@
-﻿using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-using AutoMapper;
+﻿using AutoMapper;
 using LoginAPI.Data.Entities;
 using LoginAPI.Interfaces;
-using LoginAPI.Models;
 using LoginAPI.Models.DTOs;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 
 namespace LoginAPI.Services;
 
@@ -17,7 +11,6 @@ namespace LoginAPI.Services;
 public class AuthService : IAuthService
 {
     private readonly IUserRepository _userRepository;
-    private readonly JwtSettings _jwtSettings;
     private readonly ILogger<AuthService> _logger;
     private readonly IMapper _mapper;
     
@@ -25,17 +18,14 @@ public class AuthService : IAuthService
     /// Initializes a new instance of the <see cref="AuthService"/> class.
     /// </summary>
     /// <param name="userRepository">Repository used for user persistence and lookup.</param>
-    /// <param name="jwtSettings">JWT configuration options.</param>
     /// <param name="logger">Logger for audit and diagnostics.</param>
     /// <param name="mapper">Mapper for entity-to-DTO conversion.</param>
     public AuthService(
         IUserRepository userRepository, 
-        IOptions<JwtSettings> jwtSettings,
         ILogger<AuthService> logger,
         IMapper mapper)
     {
         _userRepository = userRepository;
-        _jwtSettings = jwtSettings.Value;
         _logger = logger;
         _mapper = mapper;
     }
@@ -71,7 +61,7 @@ public class AuthService : IAuthService
     }
     
     /// <inheritdoc />
-    public async Task<LoginResponseDto> LoginAsync(LoginRequestDto request)
+    public async Task<LoginResultDto> LoginAsync(LoginRequestDto request)
     {
         // Get user by email
         var user = await _userRepository.GetByEmailAsync(request.Email);
@@ -91,7 +81,7 @@ public class AuthService : IAuthService
         
         _logger.LogInformation("User logged in successfully: {Email}", user.Email);
 
-        return CreateSessionResponse(user);
+        return CreateLoginResult(user);
     }
     
     /// <inheritdoc />
@@ -115,97 +105,24 @@ public class AuthService : IAuthService
         return _mapper.Map<List<UserDto>>(users);
     }
 
-    /// <inheritdoc />
-    public string GenerateTokenFromPrincipal(ClaimsPrincipal principal)
-    {
-        var userId = principal.FindFirst("userId")?.Value
-            ?? principal.FindFirst(ClaimTypes.NameIdentifier)?.Value
-            ?? principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
-
-        var email = principal.FindFirst(JwtRegisteredClaimNames.Email)?.Value
-            ?? principal.FindFirst(ClaimTypes.Email)?.Value;
-
-        var firstName = principal.FindFirst(JwtRegisteredClaimNames.GivenName)?.Value
-            ?? principal.FindFirst(ClaimTypes.GivenName)?.Value
-            ?? string.Empty;
-
-        var lastName = principal.FindFirst(JwtRegisteredClaimNames.FamilyName)?.Value
-            ?? principal.FindFirst(ClaimTypes.Surname)?.Value
-            ?? string.Empty;
-
-        if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(email))
-        {
-            throw new InvalidOperationException("Required identity claims are missing");
-        }
-
-        var roles = principal.FindAll(ClaimTypes.Role).Select(c => c.Value);
-        return GenerateJwtToken(userId, email, firstName, lastName, roles);
-    }
-    
     /// <summary>
-    /// Builds a signed JWT access token for the specified user.
+    /// Creates a login payload for a user containing profile information and roles.
     /// </summary>
     /// <param name="user">The authenticated user.</param>
-    /// <returns>A signed JWT token string.</returns>
-    private string GenerateJwtToken(User user)
+    /// <returns>Login payload containing user profile and role names.</returns>
+    private LoginResultDto CreateLoginResult(User user)
     {
-        var roles = user.UserRoles.Select(ur => ur.Role.Name).Distinct(StringComparer.OrdinalIgnoreCase);
-        return GenerateJwtToken(user.Id.ToString(), user.Email, user.FirstName, user.LastName, roles);
-    }
+        var roles = user.UserRoles
+            .Select(ur => ur.Role?.Name)
+            .Where(roleName => !string.IsNullOrWhiteSpace(roleName))
+            .Select(roleName => roleName!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
-    /// <summary>
-    /// Builds a signed JWT access token from explicit identity values.
-    /// </summary>
-    /// <param name="userId">User identifier claim value.</param>
-    /// <param name="email">Email claim value.</param>
-    /// <param name="firstName">First-name claim value.</param>
-    /// <param name="lastName">Last-name claim value.</param>
-    /// <param name="roles">Role claims to include.</param>
-    /// <returns>A signed JWT token string.</returns>
-    private string GenerateJwtToken(string userId, string email, string firstName, string lastName, IEnumerable<string> roles)
-    {
-        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
-        var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-
-        var claims = new List<Claim>
+        return new LoginResultDto
         {
-            new(JwtRegisteredClaimNames.Sub, userId),
-            new(JwtRegisteredClaimNames.Email, email),
-            new(JwtRegisteredClaimNames.GivenName, firstName),
-            new(JwtRegisteredClaimNames.FamilyName, lastName),
-            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new("userId", userId)
-        };
-
-        foreach (var roleName in roles.Where(r => !string.IsNullOrWhiteSpace(r)).Distinct(StringComparer.OrdinalIgnoreCase))
-        {
-            claims.Add(new Claim(ClaimTypes.Role, roleName));
-        }
-
-        var token = new JwtSecurityToken(
-            issuer: _jwtSettings.Issuer,
-            audience: _jwtSettings.Audience,
-            claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationMinutes),
-            signingCredentials: credentials
-        );
-
-        return new JwtSecurityTokenHandler().WriteToken(token);
-    }
-
-    /// <summary>
-    /// Creates a session payload for a user with a freshly issued JWT token.
-    /// </summary>
-    /// <param name="user">The authenticated user.</param>
-    /// <returns>Session payload containing token and user profile.</returns>
-    private LoginResponseDto CreateSessionResponse(User user)
-    {
-        var token = GenerateJwtToken(user);
-
-        return new LoginResponseDto
-        {
-            Token = token,
-            User = _mapper.Map<UserDto>(user)
+            User = _mapper.Map<UserDto>(user),
+            Roles = roles
         };
     }
     

@@ -1,5 +1,4 @@
 ﻿using LoginAPI.Models.DTOs;
-using System.Security.Claims;
 
 namespace LoginAPI.Interfaces;
 
@@ -17,12 +16,12 @@ public interface IAuthService
     Task<UserDto> RegisterAsync(RegisterRequestDto request);
 
     /// <summary>
-    /// Authenticates a user and returns a JWT plus user details.
+    /// Authenticates a user and returns user details plus role names.
     /// </summary>
     /// <param name="request">Login payload containing email and password.</param>
-    /// <returns>The login response including token and user data.</returns>
+    /// <returns>The login response including user profile and assigned roles.</returns>
     /// <exception cref="UnauthorizedAccessException">Thrown when credentials are invalid.</exception>
-    Task<LoginResponseDto> LoginAsync(LoginRequestDto request);
+    Task<LoginResultDto> LoginAsync(LoginRequestDto request);
 
     /// <summary>
     /// Retrieves a user by identifier.
@@ -31,14 +30,6 @@ public interface IAuthService
     /// <returns>The matching user details.</returns>
     /// <exception cref="KeyNotFoundException">Thrown when the user does not exist.</exception>
     Task<UserDto> GetUserByIdAsync(int userId);
-
-    /// <summary>
-    /// Builds a new JWT token based on claims from an authenticated principal.
-    /// </summary>
-    /// <param name="principal">Authenticated user principal.</param>
-    /// <returns>A signed JWT token string.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when required claims are missing.</exception>
-    string GenerateTokenFromPrincipal(ClaimsPrincipal principal);
 
     /// <summary>
     /// Retrieves all users in the system.

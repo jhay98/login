@@ -7,6 +7,7 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - frontend
+      - authapi
       - backend
     restart: unless-stopped
 
@@ -21,7 +22,7 @@ services:
     command: ["--migrate"]
     environment:
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
-      - JwtSettings__SecretKey=${JwtSettings__SecretKey}
+      - InternalApi__Key=${INTERNAL_API_KEY}
       - DEMO_USER_EMAIL=${DEMO_USER_EMAIL}
       - DEMO_USER_PASSWORD=${DEMO_USER_PASSWORD}
       - DEMO_USER_FIRST_NAME=${DEMO_USER_FIRST_NAME}
@@ -29,6 +30,19 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    restart: unless-stopped
+
+  authapi:
+    build:
+      context: ./AuthAPI
+    environment:
+      - JwtSettings__SecretKey=${JwtSettings__SecretKey}
+      - JwtSettings__Issuer=LoginAPI
+      - JwtSettings__Audience=LoginAPIUsers
+      - DownstreamApi__BaseUrl=http://backend:8080
+      - DownstreamApi__InternalApiKey=${INTERNAL_API_KEY}
+    depends_on:
+      - backend
     restart: unless-stopped
 
   postgres:

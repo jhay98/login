@@ -15,10 +15,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IDisp
 
     public CustomWebApplicationFactory()
     {
-        SetEnvironmentVariable("JwtSettings__SecretKey", "integration-test-secret-key-with-at-least-32-chars");
-        SetEnvironmentVariable("JwtSettings__Issuer", "IntegrationTests");
-        SetEnvironmentVariable("JwtSettings__Audience", "IntegrationTestsClient");
-        SetEnvironmentVariable("JwtSettings__ExpirationMinutes", "60");
+        SetEnvironmentVariable("InternalApi__Key", "integration-internal-key");
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)

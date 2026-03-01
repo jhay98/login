@@ -1,8 +1,6 @@
-﻿using System.Security.Claims;
-using LoginAPI.Filters;
+﻿using LoginAPI.Filters;
 using LoginAPI.Interfaces;
 using LoginAPI.Models.DTOs;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LoginAPI.Controllers;
@@ -12,6 +10,7 @@ namespace LoginAPI.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[RequireInternalApiKey]
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
@@ -41,7 +40,7 @@ public class AuthController : ControllerBase
         try
         {
             var user = await _authService.RegisterAsync(request);
-            return CreatedAtAction(nameof(GetMe), new { id = user.Id }, user);
+            return CreatedAtAction(nameof(GetMeByUserId), new { userId = user.Id }, user);
         }
         catch (InvalidOperationException ex)
         {
@@ -54,11 +53,11 @@ public class AuthController : ControllerBase
     /// Authenticates a user with email and password.
     /// </summary>
     /// <param name="request">Login request payload.</param>
-    /// <returns>A login response containing the JWT token and user data.</returns>
+    /// <returns>Authenticated user profile and role names.</returns>
     [HttpPost("login")]
-    [ProducesResponseType(typeof(LoginResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(LoginResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<LoginResponseDto>> Login([FromBody] LoginRequestDto request)
+    public async Task<ActionResult<LoginResultDto>> Login([FromBody] LoginRequestDto request)
     {
         try
         {
@@ -71,28 +70,19 @@ public class AuthController : ControllerBase
             return Unauthorized(new ErrorResponseDto { Message = ex.Message });
         }
     }
-    
+
     /// <summary>
-    /// Gets the currently authenticated user details.
+    /// Gets a user profile by identifier for trusted internal callers.
     /// </summary>
-    /// <returns>The current user profile with refreshed token envelope.</returns>
-    [Authorize]
-    [RefreshToken]
-    [HttpGet("me")]
-    [ProducesResponseType(typeof(RefreshTokenResponseDto<UserDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status401Unauthorized)]
+    /// <param name="userId">User identifier.</param>
+    /// <returns>The requested user profile.</returns>
+    [HttpGet("me/{userId:int}")]
+    [ProducesResponseType(typeof(UserDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<UserDto>> GetMe()
+    public async Task<ActionResult<UserDto>> GetMeByUserId([FromRoute] int userId)
     {
         try
         {
-            var userIdClaim = User.FindFirst("userId") ?? User.FindFirst(ClaimTypes.NameIdentifier);
-            
-            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
-            {
-                return Unauthorized(new ErrorResponseDto { Message = "Invalid token" });
-            }
-            
             var user = await _authService.GetUserByIdAsync(userId);
             return Ok(user);
         }
@@ -104,16 +94,12 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Gets all users.
+    /// Gets all users for trusted internal callers.
     /// </summary>
     /// <returns>A list of users.</returns>
-    [Authorize(Roles = "Admin")]
-    [RefreshToken]
-    [HttpGet("users")]
-    [ProducesResponseType(typeof(RefreshTokenResponseDto<List<UserDto>>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<List<UserDto>>> GetAllUsers()
+    [HttpGet("users/internal")]
+    [ProducesResponseType(typeof(List<UserDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<UserDto>>> GetAllUsersInternal()
     {
         var users = await _authService.GetAllUsersAsync();
         return Ok(users);

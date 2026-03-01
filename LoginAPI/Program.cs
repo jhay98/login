@@ -1,18 +1,13 @@
-using System.Text;
 using AutoMapper;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using LoginAPI.Data;
 using LoginAPI.Data.Repositories;
-using LoginAPI.Filters;
 using LoginAPI.Interfaces;
 using LoginAPI.Middleware;
-using LoginAPI.Models;
 using LoginAPI.Services;
 using LoginAPI.Validators;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,39 +18,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Configure JWT Settings
-builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
-var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>();
-
-// Configure JWT Authentication
-builder.Services.AddAuthentication(options =>
-    {
-        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    })
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtSettings?.Issuer,
-            ValidAudience = jwtSettings?.Audience,
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwtSettings?.SecretKey ?? string.Empty))
-        };
-    });
-
-builder.Services.AddAuthorization();
-
 // Register Repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 // Register Services
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<RefreshTokenResponseFilter>();
 
 // Register AutoMapper
 builder.Services.AddAutoMapper(typeof(Program));
@@ -64,10 +31,7 @@ builder.Services.AddAutoMapper(typeof(Program));
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
 
-builder.Services.AddControllers(options =>
-{
-    options.Filters.AddService<RefreshTokenResponseFilter>();
-});
+builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
@@ -102,10 +66,6 @@ if (app.Environment.IsDevelopment())
 }
 
 //app.UseHttpsRedirection();
-
-// Authentication and Authorization Middleware
-app.UseAuthentication();
-app.UseAuthorization();
 
 app.MapControllers();
 

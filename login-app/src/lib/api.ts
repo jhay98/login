@@ -73,7 +73,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const authApi = {
   /** Registers a new user. */
   register(payload: RegisterRequest) {
-    return request<User>('/auth/register', {
+    return request<User>('/register', {
       method: 'POST',
       body: JSON.stringify(payload),
     })
@@ -81,7 +81,7 @@ export const authApi = {
 
   /** Authenticates a user and returns token plus profile. */
   login(payload: LoginRequest) {
-    return request<LoginResponse>('/auth/login', {
+    return request<LoginResponse>('/login', {
       method: 'POST',
       body: JSON.stringify(payload),
     })
@@ -89,7 +89,7 @@ export const authApi = {
 
   /** Retrieves the current user profile for a bearer token. */
   me(token: string) {
-    return request<RefreshTokenResponse<User>>('/auth/me', {
+    return request<RefreshTokenResponse<User>>('/me', {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${token}`,
