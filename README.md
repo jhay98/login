@@ -1,4 +1,4 @@
-# Login Platform (Assessment Project)
+# Login Platform
 
 End-to-end authentication platform with:
 
